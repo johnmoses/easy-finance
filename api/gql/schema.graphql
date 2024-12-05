@@ -1,0 +1,1277 @@
+# Accounts
+query userList {
+  users(
+    search: ""
+    # isVerified: true
+    # isDeleted: false
+    first: null
+    after: null
+    last: 20
+    before: null
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        username
+        firstName
+        lastName
+        avatar
+        mobile
+        email
+        gender
+        bio
+        address
+        birthDate
+        isVerified
+        isUsed
+        isBot
+        isStaff
+        isAdmin
+        isSuperuser
+        isActive
+        dateJoined
+        isModified
+        modifiedAt
+        isDeleted
+        deletedAt
+        restoredAt
+      }
+    }
+  }
+}
+
+query userSelect {
+  user(id: "VXNlclR5cGU6Mg==") {
+    id
+    username
+    firstName
+    lastName
+    avatar
+    mobile
+    email
+    gender
+    bio
+    address
+    birthDate
+    isVerified
+    isUsed
+    isBot
+    isStaff
+    isAdmin
+    isSuperuser
+    isActive
+    dateJoined
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+  }
+}
+
+query meQuery {
+  me {
+    id
+    firstName
+    lastName
+    avatar
+    mobile
+    email
+    gender
+    bio
+    address
+    birthDate
+    isVerified
+    isUsed
+    isBot
+    isStaff
+    isAdmin
+    isSuperuser
+    isActive
+    dateJoined
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+  }
+}
+
+mutation userCreate {
+  userCreate(username: "james", password: "password") {
+    user {
+      id
+      username
+      password
+    }
+  }
+}
+
+mutation tokenAuth {
+  tokenAuth(username: "john", password: "pass123") {
+    token
+  }
+}
+
+mutation verifyToken {
+  verifyToken(
+    token: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImpvaG4iLCJleHAiOjE1NzI5NDg4MDQsIm9yaWdJYXQiOjE1NzI5NDg1MDR9.eZy4DNchj-K-QThICqZ8pmbBSVkQrnJvTOaTmfZh3tQ"
+  ) {
+    payload
+  }
+}
+
+mutation userUpdate {
+  userUpdate(
+    firstName: "John", 
+    lastName: "Mosaic",
+    gender: "M",
+    bio: "Passionate worker"
+    address: "Kubwa"
+  ) {
+    user {
+      id
+    }
+  }
+}
+
+mutation emailUpdate {
+  emailUpdate(email: "johnmoses@reporter.com") {
+    user {
+      id
+      username
+      email
+    }
+  }
+}
+
+mutation avatarUpdate {
+  avatarUpdate(avatar: "photo1a.jpeg") {
+    user {
+      id
+      username
+      avatar
+    }
+  }
+}
+
+mutation birthdayUpdate {
+  birthdayUpdate(birthDate: "1973-06-06") {
+    user {
+      id
+      username
+      birthDate
+    }
+  }
+}
+
+mutation genderUpdate {
+  genderUpdate(gender: "M") {
+    user {
+      id
+      username
+      gender
+    }
+  }
+}
+
+mutation adminToggle {
+  adminToggle(input: { id: "VXNlclR5cGU6Mg==", isAdmin: true }) {
+    clientMutationId
+  }
+}
+
+mutation superToggle {
+  superToggle(input: { id: "VXNlclR5cGU6Mg==", isSuperadmin: true }) {
+    clientMutationId
+  }
+}
+
+mutation activeToggle {
+  activeToggle(input: { id: "VXNlclR5cGU6Mg==", isActive: true }) {
+    clientMutationId
+  }
+}
+
+mutation userDelete {
+  userDelete(input: { id: "VXNlclR5cGU6MjE=", isDeleted: false }) {
+    user {
+      id
+    }
+  }
+}
+
+
+
+# Analytics
+query analyticList {
+  analytics(first: null, after: null, last: 2, before: null) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      node {
+        id
+        anonymousId
+        userId
+        userTraits
+        path
+        url
+        channel
+        event
+        eventItems
+        createdAt
+      }
+    }
+  }
+}
+
+query analyticSelect {
+  analytic(id: "QW5hbHl0aWNUeXBlOjE=") {
+    anonymousId
+    userId
+    userTraits
+    path
+    url
+    channel
+    event
+    eventItems
+    createdAt
+  }
+}
+
+mutation analyticCreate {
+  analyticCreate(
+    input: {
+      anonymousId: "1"
+      userId: "1"
+      userTraits: ""
+      path: ""
+      url: ""
+      channel: ""
+      event: ""
+      eventItems: ""
+    }
+  ) {
+    analytic {
+      id
+    }
+  }
+}
+
+mutation analyticUpsert {
+  analyticUpsert(
+    input: {
+      id: "2"
+      userId: "1"
+      userTraits: ""
+      path: ""
+      url: ""
+      channel: ""
+      event: ""
+      eventItems: ""
+      createdAt: "2024-02-05"
+    }
+  ) {
+    analytic {
+      id
+    }
+  }
+}
+
+mutation analyticUpdate {
+  analyticUpdate(
+    input: {
+      id: "1"
+      userId: "1"
+      userTraits: ""
+      path: ""
+      url: ""
+      channel: ""
+      event: ""
+      eventItems: ""
+    }
+  ) {
+    analytic {
+      id
+    }
+  }
+}
+
+# Banners
+query bannerList {
+  banners(isActive: true, first: null, after: null, last: 2, before: null) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      node {
+        id
+        title
+        content
+        pic
+        isActive
+        createdAt
+        isModified
+        modifiedAt
+        isDeleted
+        deletedAt
+        restoredAt
+      }
+    }
+  }
+}
+
+query bannerSelect {
+  banner(id: "QmFubmVyVHlwZTox") {
+    id
+    title
+    content
+    pic
+    isActive
+    createdAt
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+  }
+}
+
+mutation bannerCreate {
+  bannerCreate(
+    input: {
+      title: "Share your testimony"
+      content: "Share your testimony, Share Hope"
+      pic: "1.png"
+    }
+  ) {
+    banner {
+      id
+    }
+  }
+}
+
+mutation bannerUpdate {
+  bannerUpdate(
+    input: {
+      id: "QmFubmVyVHlwZTox"
+      title: "Great Possiblities Through Christ Jesus"
+      content: "Possibilities for the believer in Christ"
+      pic: "2.png"
+      isActive: true
+    }
+  ) {
+    banner {
+      id
+    }
+  }
+}
+
+mutation bannerDelete {
+  bannerDelete(input: { id: "QmFubmVyVHlwZToy", isDeleted: false }) {
+    banner {
+      id
+    }
+  }
+}
+
+mutation bannerRemove {
+  bannerRemove(input: { id: "SGVscFR5cGU6MQ==" }) {
+    banner {
+      id
+    }
+  }
+}
+
+
+
+# Chats
+query chatList {
+  chats(
+    search: ""
+    first: null
+    after: null
+    last: 2
+    before: null
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        description
+        createdAt
+        isModified
+        modifiedAt
+        deletedAt
+        restoredAt
+        isDeleted
+      }
+    }
+  }
+}
+
+query chatSelect {
+  chat(id: "TWVldGluZ1R5cGU6MQ==") {
+    id
+    name
+    description
+    createdAt
+    isModified
+    modifiedAt
+    deletedAt
+    restoredAt
+    isDeleted
+  }
+}
+
+
+# Messages
+query messageList {
+  messages(
+    search: ""
+    first: null
+    after: null
+    last: 2
+    before: null
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        content
+        attachment
+        chatId
+        senderId
+        createdAt
+        isRead
+        readAt
+        deletedAt
+        isDeleted
+      }
+    }
+  }
+}
+
+# Helps
+query categoryList {
+  categories(search: "", slug: "", isDeleted: false) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        description
+        slug
+        pic
+        createdAt
+        isModified
+        modifiedAt
+        isDeleted
+        deletedAt
+        restoredAt
+        categoryHelps {
+          count
+          edges {
+            node {
+              id
+              title
+            }
+          }
+        }
+        createdAt
+      }
+    }
+  }
+}
+
+query categorySelect {
+  category(slug: "administration") {
+    id
+    name
+    description
+    slug
+    pic
+    createdAt
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+    categoryHelps {
+      count
+      pageInfo {
+        startCursor
+        endCursor
+      }
+      edges {
+        cursor
+        node {
+          id
+          title
+        }
+      }
+    }
+    createdAt
+  }
+}
+
+mutation categoryCreate {
+  categoryCreate(
+    input: {
+      name: "General"
+      description: "General topics"
+      pic: "general.jpg"
+    }
+  ) {
+    category {
+      id
+    }
+  }
+}
+
+mutation categoryUpdate {
+  categoryUpdate(
+    input: {
+      id: "Q2F0ZWdvcnlUeXBlOjE="
+      name: "Reports"
+      description: "General Reports"
+      pic: ""
+    }
+  ) {
+    category {
+      id
+    }
+  }
+}
+
+mutation categoryDelete {
+  categoryDelete(input: { id: "Q2F0ZWdvcnlUeXBlOjI=", isDeleted: false }) {
+    category {
+      id
+    }
+  }
+}
+
+mutation categoryRemove {
+  categoryRemove(input: { id: "SGVscFR5cGU6NQ==" }) {
+    category {
+      id
+    }
+  }
+}
+
+query helpList {
+  helps(
+    search: ""
+    categoryId: ""
+    isDeleted: false
+    first: null
+    after: null
+    last: 2
+    before: null
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        title
+        content
+        pic
+        category {
+          id
+          name
+        }
+        createdAt
+        isModified
+        modifiedAt
+        deletedAt
+        restoredAt
+        isDeleted
+      }
+    }
+  }
+}
+
+query helpSelect {
+  help(id: "SGVscFR5cGU6MQ==") {
+    id
+    title
+    content
+    pic
+    category {
+      id
+      name
+    }
+    createdAt
+    isModified
+    modifiedAt
+    deletedAt
+    restoredAt
+    isDeleted
+  }
+}
+
+mutation helpCreate {
+  helpCreate(
+    input: {
+      title: "Getting self help"
+      content: "Getting "
+      pic: ""
+      categoryId: "Q2F0ZWdvcnlUeXBlOjM="
+    }
+  ) {
+    help {
+      id
+    }
+  }
+}
+
+mutation helpUpdate {
+  helpUpdate(
+    input: {
+      id: "SGVscFR5cGU6NA=="
+      title: "Getting self help anytime"
+      content: "Read, take notes"
+      pic: ""
+      categoryId: "Q2F0ZWdvcnlUeXBlOjE="
+    }
+  ) {
+    help {
+      id
+    }
+  }
+}
+
+mutation helpDelete {
+  helpDelete(input: { id: "SGVscFR5cGU6MQ==", isDeleted: false }) {
+    help {
+      id
+    }
+  }
+}
+
+mutation helpRemove {
+  helpRemove(input: { id: "SGVscFR5cGU6NQ==" }) {
+    help {
+      id
+    }
+  }
+}
+
+
+# Finance
+query accountList {
+  accounts(search: "") {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        description
+        balance
+        currency
+        createdAt
+        isModified
+        modifiedAt
+        isDeleted
+        deletedAt
+        restoredAt
+      }
+    }
+  }
+}
+
+query accountSelect {
+  account(id: "") {
+    id
+    name
+    description
+    balance
+    currency
+    createdAt
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+  }
+}
+
+mutation accountCreate {
+  accountCreate(
+    input: {
+      name: "Naira"
+      description: "Naira Account"
+      currency: "NGN"
+    }
+  ) {
+    account {
+      id
+    }
+  }
+}
+
+mutation accountUpdate {
+  accountUpdate(
+    input: {
+      id: "Q2F0ZWdvcnlUeXBlOjE="
+      name: "Naira"
+      description: "General Accounts"
+      currency: ""
+    }
+  ) {
+    account {
+      id
+    }
+  }
+}
+
+mutation accountDelete {
+  accountDelete(input: { id: "Q2F0ZWdvcnlUeXBlOjI=", isDeleted: false }) {
+    account {
+      id
+    }
+  }
+}
+
+mutation accountRemove {
+  accountRemove(input: { id: "SGVscFR5cGU6NQ==" }) {
+    account {
+      id
+    }
+  }
+}
+
+# Transactions
+query transactionList {
+  transactions(id_Icontains: "") {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        amount
+        description
+        createdAt
+        account {
+          id
+          name
+        }
+      }
+    }
+  }
+}
+
+query transactionSelect {
+  transaction(id: "") {
+    id
+    amount
+    description
+    createdAt
+    account {
+      id
+      name
+    }
+  }
+}
+
+mutation transactionCreate {
+  transactionCreate(
+    input: {
+      accountId: "QWNjb3VudFR5cGU6MQ=="
+      amount: 1000
+      description: "Naira Account"
+    }
+  ) {
+    transaction {
+      id
+    }
+  }
+}
+
+# Stocks
+query stockList {
+  stocks(search: "") {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        symbol
+        name
+        description
+        exchange
+        createdAt
+      }
+    }
+  }
+}
+
+query stockSelect {
+  stock(id: "") {
+    id
+    symbol
+    name
+    description
+    exchange
+    createdAt
+  }
+}
+
+mutation stockCreate {
+  stockCreate(
+    input: {
+      symbol: "AMZN"
+      name: "Amazon"
+      description: "Amazon stock"
+      exchange: ""
+    }
+  ) {
+    stock {
+      id
+    }
+  }
+}
+
+mutation stockUpdate {
+  stockUpdate(
+    input: {
+      id: "Q2F0ZWdvcnlUeXBlOjE="
+      symbol: "AMZN"
+      name: "Am"
+      description: "Amaz"
+      exchange: ""
+    }
+  ) {
+    stock {
+      id
+    }
+  }
+}
+
+mutation stockDelete {
+  stockDelete(input: { id: "Q2F0ZWdvcnlUeXBlOjI=", isDeleted: false }) {
+    stock {
+      id
+    }
+  }
+}
+
+mutation stockRemove {
+  stockRemove(input: { id: "SGVscFR5cGU6NQ==" }) {
+    stock {
+      id
+    }
+  }
+}
+
+# StockPrices
+query stockpriceList {
+  stockprices {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        open
+        high
+        low
+        close
+        volume
+        description
+        createdAt
+        stock {
+          id
+          symbol
+          name
+        }
+      }
+    }
+  }
+}
+
+query stockpriceSelect {
+  stockprice(id: "") {
+    id
+    open
+    high
+    low
+    close
+    volume
+    description
+    createdAt
+    stock {
+      id
+      symbol
+      name
+    }
+  }
+}
+
+mutation stockpriceCreate {
+  stockpriceCreate(
+    input: {
+      open: "1",
+      high: "3",
+      low: "5",
+      close: "5",
+      volume: "3"
+      description: "d"
+      stockId: "U3RvY2tUeXBlOkFNWk4="
+    }
+  ) {
+    stockprice {
+      id
+    }
+  }
+}
+
+
+# Strategies
+query strategyList {
+  strategies {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        performOrder
+        priority
+        createdAt
+      }
+    }
+  }
+}
+
+query strategySelect {
+  strategy(id: "") {
+    id
+    name
+    performOrder
+    priority
+    createdAt
+  }
+}
+
+mutation strategyCreate {
+  strategyCreate(
+    input: {
+      name: "Strategy 2"
+    }
+  ) {
+    strategy {
+      id
+    }
+  }
+}
+
+
+# StockStrategies
+query stockstrategyList {
+  stockstrategies {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        stock {
+          id
+          symbol
+          name
+        }
+        strategy {
+          id
+          name
+        }
+        createdAt
+      }
+    }
+  }
+}
+
+query stockstrategySelect {
+  stockstrategy(id: "") {
+    id
+    stock {
+      id
+      symbol
+      name
+    }
+    strategy {
+      id
+      name
+    }
+    createdAt
+  }
+}
+
+mutation stockstrategyCreate {
+  stockstrategyCreate(
+    input: {
+      stockId: "U3RvY2tUeXBlOkFNWk4="
+      strategyId: "U3RyYXRlZ3lUeXBlOjE="
+    }
+  ) {
+    stockstrategy {
+      id
+    }
+  }
+}
+
+
+# Orders
+query orderList {
+  orders {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        symbol
+        quantity
+        active
+        short
+        buyPrice
+        buyTime
+        sellPrice
+        sellTime
+        user {
+          id
+          username
+        }
+        strategy {
+          id
+          name
+        }
+        account {
+          id
+          name
+        }
+        createdAt
+      }
+    }
+  }
+}
+
+query orderSelect {
+  order(id: "") {
+    id
+    symbol
+    quantity
+    active
+    short
+    buyPrice
+    buyTime
+    sellPrice
+    sellTime
+    user {
+      id
+      username
+    }
+    strategy {
+      id
+      name
+    }
+    account {
+      id
+      name
+    }
+    createdAt
+  }
+}
+
+mutation orderCreate {
+  orderCreate(
+    input: {
+      accountId: "QWNjb3VudFR5cGU6MQ=="
+      strategyId: "U3RyYXRlZ3lUeXBlOjE="
+      symbol: "AMZ"
+      quantity: 1
+      buyPrice: 3
+      sellPrice: 2
+    }
+  ) {
+    order {
+      id
+    }
+  }
+}
+
+
+# Reviews
+query reviewList {
+  reviews(
+    itemId: ""
+    itemType: ""
+    reviewerId: ""
+    isDeleted: false
+    first: null
+    after: null
+    last: 2
+    before: null
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      node {
+        id
+        content
+        rating
+        reviewer {
+          id
+          username
+        }
+        itemId
+        itemType
+        createdAt
+        isModified
+        modifiedAt
+        isDeleted
+        deletedAt
+        restoredAt
+      }
+    }
+  }
+}
+
+query reviewSelect {
+  review(id: "UmV2aWV3VHlwZTo0MA==") {
+    id
+    content
+    rating
+    reviewer {
+      id
+      username
+    }
+    itemId
+    itemType
+    createdAt
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+  }
+}
+
+mutation reviewCreate {
+  reviewCreate(
+    input: { content: "Fine!", rating: 3, itemId: "4", itemType: "testimony" }
+  ) {
+    review {
+      id
+    }
+  }
+}
+
+mutation reviewDelete {
+  reviewDelete(input: { id: "RmVlZGJhY2tUeXBlOjE=", isDeleted: false }) {
+    clientMutationId
+    review {
+      id
+    }
+  }
+}
+
+mutation reviewRemove {
+  reviewRemove(input: { id: "SGVscFR5cGU6MQ==" }) {
+    review {
+      id
+    }
+  }
+}
