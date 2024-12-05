@@ -1,0 +1,76 @@
+.helpbox {
+    position: absolute;
+    bottom: 7px;
+    right: 0px;
+    width: max-content;
+    display: block;
+    z-index: 2;
+    position: fixed;
+}
+
+.helpbox-modal {
+    transform: translateY(-40px);
+    z-index: 123456;
+    opacity: 1;
+    display: flex;
+    width: 300px;
+    height: 570px;
+}
+
+.helpbox-modal-closed {
+    display: none;
+    flex-direction: column;
+    background: #eee;
+    width: 0px;
+    height: 0px;
+    z-index: -123456;
+    opacity: 0;
+    transition: all .5s ease-in-out;
+}
+
+.helpbox-button {
+    position: absolute;
+    bottom: 10px;
+    right: 5px;
+}
+
+.helps {
+    flex: 100%;
+    padding: 5px;
+    background: gray;
+    border-radius: 10px;
+    font-size: medium;
+}
+
+.helps-header {
+    position: sticky;
+    top: 0;
+    border-bottom: #eee 1px;
+    padding: 2px;
+    display: flex;
+    flex-direction: row;
+}
+
+.helps-body {
+    height: 85%;
+    margin-top: auto;
+    display: flex;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    flex-direction: column;
+}
+
+.helps h1 {
+    font-size: 1.2rem;
+}
+
+.helps p {
+    font-size: .9rem;
+}
+
+.helps-footer {
+    position: sticky;
+    border: #eee 1px;
+    display: flex;
+    flex-direction: row;
+}

@@ -1,0 +1,89 @@
+# Reviews
+query reviewList(
+  $itemId: String, $itemType: String, $reviewerId: ID, $isDeleted: Boolean, $last: Int 
+) {
+  reviews (itemId: $itemId, itemType: $itemType, reviewerId: $reviewerId, isDeleted: $isDeleted, last: $last) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      node {
+        id
+        content
+        rating
+        reviewer {
+          id
+          username
+        }
+        itemId
+        itemType
+        createdAt
+        isModified
+        modifiedAt
+        isDeleted
+        deletedAt
+        restoredAt
+      }
+    }
+  }
+}
+
+query reviewSelect ($id: ID!) {
+  review(id: $id) {
+    id
+    content
+    rating
+    reviewer {
+      id
+      username
+    }
+    itemId
+    itemType
+    createdAt
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+  }
+}
+
+mutation reviewCreate (
+  $content: String
+  $rating: Float
+  $itemId: String
+  $itemType: String
+) {
+  reviewCreate(
+    input: { 
+      content: $content, 
+      rating: $rating, 
+      itemId: $itemId, 
+      itemType: $itemType }
+  ) {
+    review {
+      id
+    }
+  }
+}
+
+mutation reviewDelete ($id: ID!, $isDeleted: Boolean) {
+  reviewDelete(input: { id: $id, isDeleted: $isDeleted }) {
+    clientMutationId
+    review {
+      id
+    }
+  }
+}
+
+mutation reviewRemove ($id: ID) {
+  reviewRemove(input: { id: $id }) {
+    review {
+      id
+    }
+  }
+}

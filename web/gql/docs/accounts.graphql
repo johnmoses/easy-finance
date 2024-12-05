@@ -1,0 +1,227 @@
+# Accounts
+query userList(
+  $search: String
+  $isVerified: Boolean
+  $isDeleted: Boolean
+  $first: Int
+  $last: Int
+  $after: String
+  $before: String
+) {
+  users(
+    search: $search
+    isVerified: $isVerified
+    isDeleted: $isDeleted
+    first: $first
+    last: $last
+    after: $after
+    before: $before
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        username
+        firstName
+        lastName
+        avatar
+        mobile
+        email
+        gender
+        bio
+        address
+        birthDate
+        isVerified
+        isUsed
+        isBot
+        isStaff
+        isAdmin
+        isSuperuser
+        isActive
+        dateJoined
+        isModified
+        modifiedAt
+        isDeleted
+        deletedAt
+        restoredAt
+      }
+    }
+  }
+}
+
+query userSelect($id: ID!) {
+  user(id: $id) {
+    id
+    username
+    firstName
+    lastName
+    avatar
+    mobile
+    email
+    gender
+    bio
+    address
+    birthDate
+    isVerified
+    isUsed
+    isBot
+    isStaff
+    isAdmin
+    isSuperuser
+    isActive
+    dateJoined
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+  }
+}
+
+query meQuery {
+  me {
+    id
+    username
+    firstName
+    lastName
+    avatar
+    mobile
+    email
+    gender
+    bio
+    address
+    birthDate
+    isVerified
+    isUsed
+    isBot
+    isStaff
+    isAdmin
+    isSuperuser
+    isActive
+    dateJoined
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+  }
+}
+
+mutation userCreate($username: String!, $password: String!) {
+  userCreate(username: $username, password: $password) {
+    user {
+      id
+      username
+      password
+    }
+  }
+}
+
+mutation tokenAuth($username: String!, $password: String!) {
+  tokenAuth(username: $username, password: $password) {
+    token
+  }
+}
+
+mutation verifyToken {
+  verifyToken(
+    token: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6ImpvaG4iLCJleHAiOjE1NzI5NDg4MDQsIm9yaWdJYXQiOjE1NzI5NDg1MDR9.eZy4DNchj-K-QThICqZ8pmbBSVkQrnJvTOaTmfZh3tQ"
+  ) {
+    payload
+  }
+}
+
+mutation userUpdate(
+  $firstName: String, 
+  $lastName: String,
+  $gender: String,
+  $bio: String,
+  $address: String,
+  ) {
+  userUpdate(
+    firstName: $firstName, 
+    lastName: $lastName,
+    gender: $gender,
+    bio: $bio,
+    address: $address,
+    ) {
+    user {
+      id
+      username
+      password
+    }
+  }
+}
+
+mutation emailUpdate($email: String!) {
+  emailUpdate(email: $email) {
+    user {
+      id
+      username
+      email
+    }
+  }
+}
+
+mutation avatarUpdate($avatar: String!) {
+  avatarUpdate(avatar: $avatar) {
+    user {
+      id
+      username
+      avatar
+    }
+  }
+}
+
+mutation birthdayUpdate($birthDate: String!) {
+  birthdayUpdate(birthDate: $birthDate) {
+    user {
+      id
+      username
+      birthDate
+    }
+  }
+}
+
+mutation genderUpdate($gender: String!) {
+  genderUpdate(gender: $gender) {
+    user {
+      id
+      username
+      gender
+    }
+  }
+}
+
+mutation adminToggle($id: ID!, $isAdmin: Boolean) {
+  adminToggle(input: { id: $id, isAdmin: $isAdmin }) {
+    clientMutationId
+  }
+}
+
+mutation superToggle($id: ID!, $isSuperadmin: Boolean) {
+  superToggle(input: { id: $id, isSuperadmin: $isSuperadmin }) {
+    clientMutationId
+  }
+}
+
+mutation activeToggle($id: ID!, $isActive: Boolean) {
+  activeToggle(input: { id: $id, isActive: $isActive }) {
+    clientMutationId
+  }
+}
+
+mutation userDelete($id: ID, $isDeleted: Boolean) {
+  userDelete(input: { id: $id, isDeleted: $isDeleted }) {
+    user {
+      id
+    }
+  }
+}
