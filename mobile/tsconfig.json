@@ -1,0 +1,17 @@
+{
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "jsx": "react",
+    "esModuleInterop": true,
+    "paths": {
+      "@app/*": ["src/*"],
+      "@clients/*": ["src/clients/*"],
+      "@components/*": ["src/components/*"],
+      "@modules/*": ["src/modules/*"],
+      "@navigators/*": ["src/navigators/*"],
+      "@store/*": ["src/store/*"],
+      "@screens/*": ["src/screens/*"]
+    }
+  }
+}

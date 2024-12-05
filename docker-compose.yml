@@ -1,0 +1,98 @@
+# version: '3.8'
+
+services:
+  postgres:
+    image: postgres
+    restart: always
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./docker/db/.env
+    healthcheck:
+      test: pg_isready -U postgres
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=1024"
+      - "-c"
+      - "shared_buffers=3GB"
+      - "-c"
+      - "max_locks_per_transaction=1024"
+  api:
+    platform: linux/amd64
+    # restart: always
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    volumes:
+      - ./api/:/api/
+      - static:/api/api/static
+      - media:/api/api/media
+    ports:
+    - 8000:8000
+    env_file:
+      - ./api/api/.env.dev
+    depends_on:
+      - postgres
+  apix:
+    platform: linux/amd64
+    # restart: always
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+    build:
+      context: ./apix
+      dockerfile: Dockerfile
+    volumes:
+      - ./apix/:/apix
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./apix/.env.dev
+    depends_on:
+      - postgres
+      - api
+  web:
+    platform: linux/amd64
+    restart: unless-stopped
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    volumes:
+      - ./web/:/web
+      - /web/node_modules
+      - /web/.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+      - apix
+  nginx:
+    image: nginx:1.23-alpine
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - static:/api/api/static
+      - media:/api/api/media
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - api
+      - apix
+      - web
+
+volumes:
+  postgres_data:
+  static: 
+  media:
+

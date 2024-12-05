@@ -1,0 +1,130 @@
+# Analytics
+query analyticList($first: Int, $last: Int, $after: String, $before: String) {
+  analytics(first: $first, last: $last, after: $after, before: $before) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      node {
+        id
+        anonymousId
+        userId
+        userTraits
+        path
+        url
+        channel
+        event
+        eventItems
+        createdAt
+      }
+    }
+  }
+}
+
+query analyticSelect($id: ID!) {
+  analytic(id: $id) {
+    anonymousId
+    userId
+    userTraits
+    path
+    url
+    channel
+    event
+    eventItems
+    createdAt
+  }
+}
+
+mutation analyticCreate(
+  $anonymousId: String
+  $userId: String
+  $userTraits: String
+  $path: String
+  $url: String
+  $channel: String
+  $event: String
+  $eventItems: String
+) {
+  analyticCreate(
+    input: {
+      anonymousId: $anonymousId
+      userId: $userId
+      userTraits: $userTraits
+      path: $path
+      url: $url
+      channel: $channel
+      event: $event
+      eventItems: $eventItems
+    }
+  ) {
+    analytic {
+      id
+    }
+  }
+}
+
+mutation analyticUpsert(
+  $id: ID
+  $anonymousId: String
+  $userId: String
+  $userTraits: String
+  $path: String
+  $url: String
+  $channel: String
+  $event: String
+  $eventItems: String
+  $createdAt: String
+) {
+  analyticUpsert(
+    input: {
+      id: $id
+      anonymousId: $anonymousId
+      userId: $userId
+      userTraits: $userTraits
+      path: $path
+      url: $url
+      channel: $channel
+      event: $event
+      eventItems: $eventItems
+      createdAt: $createdAt
+    }
+  ) {
+    analytic {
+      id
+    }
+  }
+}
+
+mutation analyticUpdate(
+  $id: ID
+  $anonymousId: String
+  $userId: String
+  $userTraits: String
+  $path: String
+  $url: String
+  $channel: String
+  $event: String
+  $eventItems: String
+) {
+  analyticUpdate(
+    input: {
+      id: $id
+      anonymousId: $anonymousId
+      userId: $userId
+      userTraits: $userTraits
+      path: $path
+      url: $url
+      channel: $channel
+      event: $event
+      eventItems: $eventItems
+    }
+  ) {
+    analytic {
+      id
+    }
+  }
+}
