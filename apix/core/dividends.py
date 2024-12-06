@@ -46,9 +46,9 @@ if __name__ == "__main__":
     year = 2024
     month = 12
     days_in_month = calendar.monthrange(year, month)[1]
-    dc = Dividend(year, month)
+    dv = Dividend(year, month)
     try: 
         for day in range(1, days_in_month + 1):
-            print(dc.get_calendar(day))
+            print(dv.get_calendar(day))
     except Exception as e:
         print(e)

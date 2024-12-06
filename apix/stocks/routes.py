@@ -18,20 +18,38 @@ from stocks.schemas import (
 def get_stocks():
     request_data = request.get_json()
     last = request_data['last']
-    stocks = StockController.get_stocks(last)
-    return StockSchema(many=True).dump(stocks), 200
+    res = StockController.get_stocks(last)
+    return StockSchema(many=True).dump(res), 200
 
 @bp.route('/stock/<int:id>', methods=['GET'])
 def get_stock(id):
-    stock = StockController.get_stock(id)
-    return StockSchema().dump(stock), 200
+    res = StockController.get_stock(id)
+    return StockSchema().dump(res), 200
+
+@bp.route('/stock/stickers', methods=['POST'])
+def get_stock_stickers():
+    res = StockController.get_stickers()
+    return res, 200
+
+
+@bp.route('/stock/topgainers', methods=['POST'])
+def get_stock_topgainers():
+    res = StockController.get_top_gainers()
+    return res, 200
+
+@bp.route('/stock/prices', methods=['POST'])
+def get_stock_prices():
+    request_data = request.get_json()
+    symbol = request_data['symbol']
+    res = StockController.get_stock_prices(symbol)
+    return res, 200
 
 @bp.route('/stock/returns', methods=['POST'])
 def get_stock_returns():
     request_data = request.get_json()
     symbol = request_data['symbol']
-    st = StockController.get_stock_returns(symbol)
-    return st, 200
+    res = StockController.get_stock_returns(symbol)
+    return res, 200
 
 @bp.route('/plot/returns', methods=['POST'])
 def plot_stock_returns():

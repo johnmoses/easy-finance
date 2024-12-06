@@ -10,22 +10,20 @@ import {
 } from "@/components/ui/table";
 import { apixClient } from "@/clients/axios";
 
-interface TablifyProps {
+interface StickersProps {
   isDeleted?: boolean;
   last?: number;
 }
 
-export const Tablify: React.FC<TablifyProps> = (props) => {
-  const [stocks, setStocks] = useState<any[]>([]);
+export const Stickers: React.FC<StickersProps> = (props) => {
+  const [stickers, setStickers] = useState<any[]>([]);
 
-  const getStocks = async () => {
+  const getStickers = async () => {
     apixClient
-    .post(`/stocks`, {
-      last: 5,
-    })
+    .post(`/stock/stickers`)
       .then((response) => {
-        setStocks(response.data);
-        console.log('stocks: ', response);
+        setStickers(response.data);
+        console.log('Stickers: ', response);
       })
       .catch((e) => {
         console.log("no data", e);
@@ -33,7 +31,7 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
   };
 
   React.useEffect(() => {
-    getStocks();
+    getStickers();
   }, []);
 
 
@@ -43,27 +41,23 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
 
   return (
     <>
-      <h1>Stocks</h1>
+      <h1>Stickers</h1>
       {/* <img src={`data:image/png:base64,${plot}`} /> */}
       {/* <SearchBox doSearch={handleSearch} /> */}
-      {/* <Table>
+      <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
             <TableHead>Date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {portfolios.map((portfolio) => (
-            <TableRow key={portfolio.Date}>
-              <TableCell className="px-6 py-4">{portfolio.Date}</TableCell>
-              <TableCell className="px-6 py-4">
-                {portfolio.Date}
-              </TableCell>
+          {stickers.map((sticker, index) => (
+            <TableRow key={index}>
+              <TableCell className="px-6 py-4">{sticker}</TableCell>
             </TableRow>
           ))}
         </TableBody>
-      </Table> */}
+      </Table>
     </>
   );
 };

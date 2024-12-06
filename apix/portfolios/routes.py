@@ -15,8 +15,15 @@ from portfolios.controllers import PortfolioController
 def get_portfolios():
     request_data = request.get_json()
     symbols = request_data['symbols']
-    portfolios = PortfolioController.get_historical_prices(symbols)
+    portfolios = PortfolioController.get_portfolios(symbols)
     return portfolios, 200
+
+@bp.route('/news', methods=['POST'])
+def get_news():
+    # request_data = request.get_json()
+    # symbol = request_data['symbol']
+    res = PortfolioController.get_news()
+    return res, 200
 
 @bp.route('/plot/stocks', methods=['POST'])
 def plot_stocks():

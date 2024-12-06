@@ -10,22 +10,22 @@ import {
 } from "@/components/ui/table";
 import { apixClient } from "@/clients/axios";
 
-interface TablifyProps {
+interface StockPricesProps {
   isDeleted?: boolean;
   last?: number;
 }
 
-export const Tablify: React.FC<TablifyProps> = (props) => {
-  const [stocks, setStocks] = useState<any[]>([]);
+export const StockPrices: React.FC<StockPricesProps> = (props) => {
+  const [stockprices, setStockPrices] = useState<any[]>([]);
 
-  const getStocks = async () => {
+  const getStockPrices = async () => {
     apixClient
-    .post(`/stocks`, {
-      last: 5,
+    .post(`/stock/prices`, {
+      symbol: "AMZN"
     })
       .then((response) => {
-        setStocks(response.data);
-        console.log('stocks: ', response);
+        setStockPrices(response.data);
+        console.log('StockPrice: ', response);
       })
       .catch((e) => {
         console.log("no data", e);
@@ -33,7 +33,7 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
   };
 
   React.useEffect(() => {
-    getStocks();
+    getStockPrices();
   }, []);
 
 
@@ -43,7 +43,7 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
 
   return (
     <>
-      <h1>Stocks</h1>
+      <h1>Stock Prices</h1>
       {/* <img src={`data:image/png:base64,${plot}`} /> */}
       {/* <SearchBox doSearch={handleSearch} /> */}
       {/* <Table>

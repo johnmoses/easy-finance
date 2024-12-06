@@ -10,22 +10,20 @@ import {
 } from "@/components/ui/table";
 import { apixClient } from "@/clients/axios";
 
-interface TablifyProps {
+interface TopGainersProps {
   isDeleted?: boolean;
   last?: number;
 }
 
-export const Tablify: React.FC<TablifyProps> = (props) => {
-  const [stocks, setStocks] = useState<any[]>([]);
+export const TopGainers: React.FC<TopGainersProps> = (props) => {
+  const [tableData, setTableData] = useState<any[]>([]);
 
-  const getStocks = async () => {
+  const getTopGainers = async () => {
     apixClient
-    .post(`/stocks`, {
-      last: 5,
-    })
+    .post(`/stock/topgainers`)
       .then((response) => {
-        setStocks(response.data);
-        console.log('stocks: ', response);
+        setTableData(response.data);
+        console.log('TopGainers: ', response.data);
       })
       .catch((e) => {
         console.log("no data", e);
@@ -33,7 +31,7 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
   };
 
   React.useEffect(() => {
-    getStocks();
+    getTopGainers();
   }, []);
 
 
@@ -43,10 +41,10 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
 
   return (
     <>
-      <h1>Stocks</h1>
+      <h1>Top Gainers</h1>
       {/* <img src={`data:image/png:base64,${plot}`} /> */}
       {/* <SearchBox doSearch={handleSearch} /> */}
-      {/* <Table>
+      <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Date</TableHead>
@@ -54,16 +52,13 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {portfolios.map((portfolio) => (
-            <TableRow key={portfolio.Date}>
-              <TableCell className="px-6 py-4">{portfolio.Date}</TableCell>
-              <TableCell className="px-6 py-4">
-                {portfolio.Date}
-              </TableCell>
+          {tableData.map((data, index) => (
+            <TableRow key={index}>
+              <TableCell className="px-6 py-4">{data}</TableCell>
             </TableRow>
           ))}
         </TableBody>
-      </Table> */}
+      </Table>
     </>
   );
 };

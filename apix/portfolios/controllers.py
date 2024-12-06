@@ -9,16 +9,22 @@ from datetime import datetime, timedelta
 from .models import db, Portfolio
 from core.scrapper import Scrapper
 from core.portfolio import Portfolio as PF
+from core.scrapper import Scrapper
 
 class PortfolioController:
     def __init__(self):
         pass
 
-    def get_historical_prices(symbols):
+    def get_portfolios(symbols):
         start = datetime.now() - timedelta(days=365*5)
         end = datetime.now()
         pf = PF(symbols,start,end)
-        result = pf.get_historical_prices()
+        result = pf.get_portfolios()
+        return result if result else []
+
+    def get_news():
+        scraper = Scrapper()
+        result = scraper.get_news()
         return result if result else []
 
     def plot_stocks(symbols):

@@ -1,9 +1,13 @@
-import { GetStaticProps, NextPage } from 'next';
-import { addApolloState, initializeApollo } from '@/clients/apollo';
-import Layout from '@/components/layout';
-import { Tablify } from '@/modules/portfolios/Tablify';
-import { Menus } from '@/modules/users/Menus';
-// import { usePageAnalytics } from '@/hooks';
+import Layout from "@/components/layout";
+import { NextPage } from "next";
+import React from "react";
+import { Tablify } from "@/modules/portfolios/Tablify";
+import dynamic from "next/dynamic";
+// import { usePageAnalytics } from "@/hooks";
+
+const Menus = dynamic(() => import("@/modules/portfolios/Menus"), {
+  ssr: false,
+});
 
 const PortfoliosTablePage: NextPage = () => {
   // usePageAnalytics();
@@ -22,14 +26,6 @@ const PortfoliosTablePage: NextPage = () => {
       <Tablify />
     </Layout>
   );
-};
-
-export const getStaticProps: GetStaticProps = async () => {
-  const apolloClient = initializeApollo();
-
-  return addApolloState(apolloClient, {
-    props: {},
-  });
 };
 
 export default PortfoliosTablePage;

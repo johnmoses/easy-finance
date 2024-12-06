@@ -32,14 +32,14 @@ class Portfolio:
         data = df['Adj Close']
         return data
     
-    def get_historical_prices(self):
+    def get_portfolios(self):
         """ 
         """
         data = self.get_data()
         # JSON formats: table, records, columns, index
-        return data.to_json(orient='table')
+        # return data.to_json(orient='table')
         # return data.values.tolist()
-        # return data.to_dict()
+        return data.to_dict()
         # return data
 
     def get_daily_returns(self):
@@ -98,5 +98,4 @@ if __name__ == "__main__":
      start = datetime.now() - timedelta(days=365*5)
      end = datetime.now()
      pf = Portfolio(symbols,start,end)
-    #  print(pf.get_data())
-     print(pf.get_historical_prices())
+     print(pf.get_portfolios())

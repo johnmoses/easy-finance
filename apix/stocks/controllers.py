@@ -9,6 +9,7 @@ from sqlalchemy import desc, text
 from sqlalchemy.dialects.postgresql import insert
 from .models import db, Stock, StockPrice, Strategy
 from core.stock import Stock as ST
+from core.scrapper import Scrapper
 
 # api = tradeapi.REST(
 #     os.environ['ALPACA_API_KEY'], 
@@ -27,6 +28,22 @@ class StockController:
     def get_stock(id):
         stock = Stock.query.filter_by(id=id).first()
         return stock if stock else []
+
+    def get_stickers():
+        scraper = Scrapper()
+        result = scraper.get_tickers()
+        return result if result else []
+
+
+    def get_top_gainers():
+        scraper = Scrapper()
+        result = scraper.get_top_gainers()
+        return result if result else []
+
+    def get_stock_prices(symbol):
+        scraper = Scrapper()
+        result = scraper.get_stock_prices(symbol)
+        return result if result else []
 
     def get_stock_returns(symbol):
         start = datetime.now() - timedelta(days=365*5)
