@@ -19,11 +19,11 @@ export const Show = ({ node, open, onClose }: ShowProps) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Meeting</DialogTitle>
+          <DialogTitle>Order</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
-          <p>Title: {node?.title}</p>
-          <p>Description: {node?.description}</p>
+          <p>User: {node?.user.username}</p>
+          <p>Date: {node?.createdAt}</p>
         </div>
         <DialogFooter>
           <Button onClick={onClose}>Close</Button>

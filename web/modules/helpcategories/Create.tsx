@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { AppContext } from "@/context/AppContext";
-import { useCategoryCreateMutation } from "@/gql/schemas";
+import { useHelpCategoryCreateMutation } from "@/gql/schemas";
 import React, { useContext, useState } from "react";
 
 interface CreateProps {
@@ -27,7 +27,7 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
   const [description, setDescription] = useState("");
   const [pic, setPic] = useState("");
   const [message, setMessage] = useState("");
-  const [categoryCreate] = useCategoryCreateMutation();
+  const [categoryCreate] = useHelpCategoryCreateMutation();
 
   const validateEntries = () => {
     if (name === "") {
@@ -43,14 +43,6 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
         description: description,
         pic: pic,
       },
-      // refetchQueries: [
-      //   {
-      //     query: CategoryListDocument,
-      //     variables: {
-      //       last: last,
-      //     },
-      //   },
-      // ],
     })
       .then(() => {
         setName("");

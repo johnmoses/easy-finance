@@ -51,15 +51,6 @@ export const Create = ({
         itemId: itemId,
         itemType: itemType,
       },
-      // refetchQueries: [
-      //   {
-      //     query: ReviewListDocument,
-      //     variables: {
-      //       last: last,
-      //       itemId: itemId,
-      //     },
-      //   },
-      // ],
     })
       .then(() => {
         setContent("");

@@ -64,7 +64,7 @@ export const List: React.FC<ListProps> = (props) => {
               ))}
             </div>
             <p>{review?.node?.content}</p>
-            <div>{review?.node?.reviewer.username}</div>
+            <div>{review?.node?.user.username}</div>
           </div>
         ))}
       </>
@@ -85,7 +85,7 @@ export const List: React.FC<ListProps> = (props) => {
             ))}
           </div>
           <p>{review?.node?.content}</p>
-          <h3>{review?.node?.reviewer.username}</h3>
+          <h3>{review?.node?.user.username}</h3>
         </Card>
       ))}
 

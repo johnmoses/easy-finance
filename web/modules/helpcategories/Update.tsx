@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { AppContext } from "@/context/AppContext";
-import { CategorySelectDocument, useCategoryUpdateMutation } from "@/gql/schemas";
+import { HelpCategorySelectDocument, useHelpCategoryUpdateMutation } from "@/gql/schemas";
 import React, { useContext, useState } from "react";
 
 interface UpdateProps {
@@ -28,7 +28,7 @@ export const Update = ({ node, last, open, onClose }: UpdateProps) => {
   const [description, setDescription] = useState(node?.description);
   const [pic, setPic] = useState(node?.pic);
   const [message, setMessage] = useState("");
-  const [categoryUpdate] = useCategoryUpdateMutation();
+  const [helpCategoryUpdate] = useHelpCategoryUpdateMutation();
 
   const init = () => {
     setName(node?.name);
@@ -48,7 +48,7 @@ export const Update = ({ node, last, open, onClose }: UpdateProps) => {
   };
 
   const handleUpdate = () => {
-    categoryUpdate({
+    helpCategoryUpdate({
       variables: {
         id: node.id,
         name: name,
@@ -57,7 +57,7 @@ export const Update = ({ node, last, open, onClose }: UpdateProps) => {
       },
       refetchQueries: [
         {
-          query: CategorySelectDocument,
+          query: HelpCategorySelectDocument,
           variables: {
             id: node?.id,
           },

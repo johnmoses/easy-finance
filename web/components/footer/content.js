@@ -20,10 +20,6 @@ export const footerContent = [
       title: "Offers",
       subtitles: [
         {
-          text: "Portfolios",
-          href: "/portfolios",
-        },
-        {
           text: "Stocks",
           href: "/stocks",
         },

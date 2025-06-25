@@ -7,16 +7,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAnalyticListQuery } from "@/gql/schemas";
+import { useOrderListQuery } from "@/gql/schemas";
 import React from "react";
 
 interface TablifyProps {
-  isDeleted?: boolean;
+  search?: string;
   last?: number;
 }
 
 export const Tablify: React.FC<TablifyProps> = (props) => {
-  const { loading, data, error } = useAnalyticListQuery({
+  const { loading, data, error } = useOrderListQuery({
     variables: {
       last: props.last,
     },
@@ -39,21 +39,21 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
       <h1>Orders</h1>
       <Table>
         <TableHeader>
-          <TableHead>User ID</TableHead>
-          <TableHead>Path</TableHead>
+          <TableHead>Quantity</TableHead>
+          <TableHead>Buy Price</TableHead>
           <TableHead>Date</TableHead>
         </TableHeader>
         <TableBody>
-          {data?.analytics?.edges.map((analytic) => (
-            <TableRow key={analytic?.node?.id}>
+          {data?.orders?.edges.map((order) => (
+            <TableRow key={order?.node?.id}>
               <TableCell className="px-6 py-4">
-                {analytic?.node?.userId}
+                {order?.node?.quantity}
               </TableCell>
               <TableCell className="px-6 py-4">
-                {analytic?.node?.path}
+                {order?.node?.buyPrice}
               </TableCell>
               <TableCell className="px-6 py-4">
-                {analytic?.node?.createdAt}
+                {order?.node?.createdAt}
               </TableCell>
             </TableRow>
           ))}

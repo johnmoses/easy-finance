@@ -1,7 +1,7 @@
 import Layout from "@/components/layout";
 import { NextPage } from "next";
 import React from "react";
-import { StockPrices } from "@/modules/stocks/StockPrices";
+import { MinuteStockPrices } from "@/modules/stocks/MinuteStockPrices";
 import dynamic from "next/dynamic";
 // import { usePageAnalytics } from "@/hooks";
 
@@ -23,7 +23,7 @@ const StockPricesTablePage: NextPage = () => {
           </h5>
         </div>
       </div>
-      <StockPrices />
+      <MinuteStockPrices />
     </Layout>
   );
 };

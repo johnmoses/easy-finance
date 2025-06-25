@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { AppContext } from "@/context/AppContext";
-import { useCategoryCreateMutation } from "@/gql/schemas";
+import { useTransactionCreateMutation } from "@/gql/schemas";
 import React, { useContext, useState } from "react";
 
 interface CreateProps {
@@ -23,46 +23,37 @@ interface CreateProps {
 export const Create = ({ last, open, onClose }: CreateProps) => {
   const { toast } = useToast();
   const { track } = useContext(AppContext);
-  const [name, setName] = useState("");
+  const [amount, setAmount] = useState<any>(0);
   const [description, setDescription] = useState("");
-  const [pic, setPic] = useState("");
+  const [accountId, setAccountId] = useState("")
   const [message, setMessage] = useState("");
-  const [categoryCreate] = useCategoryCreateMutation();
+  const [transactionCreate] = useTransactionCreateMutation();
 
   const validateEntries = () => {
-    if (name === "") {
+    if (amount === "") {
       return true;
     }
     return false;
   };
 
   const handleCreate = async () => {
-    categoryCreate({
+    transactionCreate({
       variables: {
-        name: name,
+        amount: amount,
         description: description,
-        pic: pic,
+        accountId: accountId
       },
-      // refetchQueries: [
-      //   {
-      //     query: CategoryListDocument,
-      //     variables: {
-      //       last: last,
-      //     },
-      //   },
-      // ],
     })
       .then(() => {
-        setName("");
+        setAmount("");
         setDescription("");
-        setPic("");
         setMessage("");
         onClose();
         toast({
-          title: "Help category created",
-          description: "You have created help category",
+          title: "Transaction created",
+          description: "You have created transaction",
         });
-        track("Created help category", `${name} `);
+        track("Created transaction", `${name} `);
       })
       .catch(() => {
         setMessage("Cannot add content this time!");
@@ -73,7 +64,7 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Help Category</DialogTitle>
+          <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
           <div>{message}</div>
@@ -82,11 +73,11 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
               <Label htmlFor="title" />
             </div>
             <Input
-              id="name"
-              value={name}
-              placeholder="Name"
+              id="amount"
+              value={amount}
+              placeholder="Amount"
               required
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setAmount(e.target.value)}
             />
           </div>
           <div>

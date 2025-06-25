@@ -7,17 +7,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAnalyticListQuery } from "@/gql/schemas";
+import { useTransactionListQuery } from "@/gql/schemas";
 import React from "react";
 
 interface TablifyProps {
-  isDeleted?: boolean;
+  search?: string;
   last?: number;
 }
 
 export const Tablify: React.FC<TablifyProps> = (props) => {
-  const { loading, data, error } = useAnalyticListQuery({
+  const { loading, data, error } = useTransactionListQuery({
     variables: {
+      search: props.search,
       last: props.last,
     },
   });
@@ -39,21 +40,21 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
       <h1>Transactions</h1>
       <Table>
         <TableHeader>
-          <TableHead>User ID</TableHead>
-          <TableHead>Path</TableHead>
+          <TableHead>Description</TableHead>
+          <TableHead>Amount</TableHead>
           <TableHead>Date</TableHead>
         </TableHeader>
         <TableBody>
-          {data?.analytics?.edges.map((analytic) => (
-            <TableRow key={analytic?.node?.id}>
+          {data?.transactions?.edges.map((transaction) => (
+            <TableRow key={transaction?.node?.id}>
               <TableCell className="px-6 py-4">
-                {analytic?.node?.userId}
+                {transaction?.node?.description}
               </TableCell>
               <TableCell className="px-6 py-4">
-                {analytic?.node?.path}
+                {transaction?.node?.amount}
               </TableCell>
               <TableCell className="px-6 py-4">
-                {analytic?.node?.createdAt}
+                {transaction?.node?.createdAt}
               </TableCell>
             </TableRow>
           ))}

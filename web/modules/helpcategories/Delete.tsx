@@ -1,6 +1,6 @@
 import { HiOutlineExclamationCircle } from "react-icons/hi";
 import React, { useContext, useState } from "react";
-import { useCategoryDeleteMutation } from "@/gql/schemas";
+import { useHelpCategoryDeleteMutation } from "@/gql/schemas";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -26,10 +26,10 @@ export const Delete = ({
   const { toast } = useToast();
   const { track } = useContext(AppContext);
   const [message, setMessage] = useState("");
-  const [categoryDelete] = useCategoryDeleteMutation();
+  const [helpCategoryDelete] = useHelpCategoryDeleteMutation();
 
   const handleDelete = () => {
-    categoryDelete({
+    helpCategoryDelete({
       variables: { id: node.id },
       // refetchQueries: [
       //   {

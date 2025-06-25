@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { AppContext } from "@/context/AppContext";
-import { useCategoryCreateMutation } from "@/gql/schemas";
+import { useStockCreateMutation } from "@/gql/schemas";
 import React, { useContext, useState } from "react";
 
 interface CreateProps {
@@ -25,9 +25,8 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
   const { track } = useContext(AppContext);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [pic, setPic] = useState("");
   const [message, setMessage] = useState("");
-  const [categoryCreate] = useCategoryCreateMutation();
+  const [stockCreate] = useStockCreateMutation();
 
   const validateEntries = () => {
     if (name === "") {
@@ -37,32 +36,22 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
   };
 
   const handleCreate = async () => {
-    categoryCreate({
+    stockCreate({
       variables: {
         name: name,
         description: description,
-        pic: pic,
       },
-      // refetchQueries: [
-      //   {
-      //     query: CategoryListDocument,
-      //     variables: {
-      //       last: last,
-      //     },
-      //   },
-      // ],
     })
       .then(() => {
         setName("");
         setDescription("");
-        setPic("");
         setMessage("");
         onClose();
         toast({
-          title: "Help category created",
-          description: "You have created help category",
+          title: "Stock created",
+          description: "You have created stock",
         });
-        track("Created help category", `${name} `);
+        track("Created Stock", `${name} `);
       })
       .catch(() => {
         setMessage("Cannot add content this time!");
@@ -73,7 +62,7 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Help Category</DialogTitle>
+          <DialogTitle>Add Stock</DialogTitle>
         </DialogHeader>
         <div className="space-y-6">
           <div>{message}</div>

@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useAnalyticListQuery } from "@/gql/schemas";
+import { useStockListQuery } from "@/gql/schemas";
 import React from "react";
 
 interface ListProps {
@@ -8,7 +8,7 @@ interface ListProps {
 }
 
 export const List: React.FC<ListProps> = (props) => {
-  const { loading, data, error } = useAnalyticListQuery({
+  const { loading, data, error } = useStockListQuery({
     variables: { last: props.last },
   });
 
@@ -26,14 +26,14 @@ export const List: React.FC<ListProps> = (props) => {
     <>
       <h1>Stocks</h1>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {data?.analytics?.edges.map((analytic) => (
+        {data?.stocks?.edges.map((stock) => (
           <Card
-            key={analytic?.node?.createdAt}
+            key={stock?.node?.createdAt}
             className="my-2 rounded shadow-lg shadow-gray-200 dark:shadow-gray-900 bg-white dark:bg-gray-800 duration-300 hover:-translate-y-1"
           >
             <div className="p-6">
               <h5 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                <p>User {analytic?.node?.anonymousId}</p>
+                <p>Name {stock?.node?.name}</p>
               </h5>
             </div>
           </Card>

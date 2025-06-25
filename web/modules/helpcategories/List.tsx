@@ -1,4 +1,4 @@
-import { useCategoryListQuery } from "@/gql/schemas";
+import { useHelpCategoryListQuery } from "@/gql/schemas";
 import Link from "next/link";
 import React, { useState } from "react";
 import { MdMenuOpen } from "react-icons/md";
@@ -19,7 +19,7 @@ export const List: React.FC<ListProps> = (props) => {
     setShowModal(!showModal);
   }
 
-  const { loading, data, error, refetch } = useCategoryListQuery({
+  const { loading, data, error, refetch } = useHelpCategoryListQuery({
     variables: { slug: "", isDeleted: false },
   });
 
@@ -44,7 +44,7 @@ export const List: React.FC<ListProps> = (props) => {
       <h1>Help Categories</h1>
       <SearchBox doSearch={handleSearch} />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {data?.categories?.edges.map((category) => (
+        {data?.helpCategories?.edges.map((category) => (
           <Card
             key={category?.node?.id}
             className="my-2 rounded shadow-lg shadow-gray-200 dark:shadow-gray-900 bg-white dark:bg-gray-800 duration-300 hover:-translate-y-1"

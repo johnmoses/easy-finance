@@ -84,7 +84,7 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
             <TableRow key={review?.node?.id}>
               <TableCell>{review?.node?.content}</TableCell>
               <TableCell>{review?.node?.rating}</TableCell>
-              <TableCell>{review?.node?.reviewer.username}</TableCell>
+              <TableCell>{review?.node?.user.username}</TableCell>
               <TableCell>{review?.node?.itemId}</TableCell>
               <TableCell>{review?.node?.itemType}</TableCell>
               <TableCell>

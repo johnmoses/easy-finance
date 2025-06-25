@@ -1,5 +1,5 @@
 # Helps
-query categoryList(
+query helpCategoryList(
   $search: String
   $slug: String
   $isDeleted: Boolean
@@ -8,7 +8,7 @@ query categoryList(
   $after: String
   $before: String
 ) {
-  categories(
+  helpCategories(
     search: $search
     slug: $slug
     isDeleted: $isDeleted
@@ -52,8 +52,8 @@ query categoryList(
   }
 }
 
-query categorySelect($slug: String!) {
-  category(slug: $slug) {
+query helpCategorySelect($slug: String!) {
+  helpCategory(slug: $slug) {
     id
     name
     description
@@ -82,21 +82,21 @@ query categorySelect($slug: String!) {
   }
 }
 
-mutation categoryCreate($name: String, $description: String, $pic: String) {
-  categoryCreate(input: { name: $name, description: $description, pic: $pic }) {
+mutation helpCategoryCreate($name: String, $description: String, $pic: String) {
+  helpCategoryCreate(input: { name: $name, description: $description, pic: $pic }) {
     category {
       id
     }
   }
 }
 
-mutation categoryUpdate(
+mutation helpCategoryUpdate(
   $id: ID
   $name: String
   $description: String
   $pic: String
 ) {
-  categoryUpdate(
+  helpCategoryUpdate(
     input: { id: $id, name: $name, description: $description, pic: $pic }
   ) {
     category {
@@ -105,16 +105,16 @@ mutation categoryUpdate(
   }
 }
 
-mutation categoryDelete($id: ID!, $isDeleted: Boolean) {
-  categoryDelete(input: { id: $id, isDeleted: $isDeleted }) {
+mutation helpCategoryDelete($id: ID!, $isDeleted: Boolean) {
+  helpCategoryDelete(input: { id: $id, isDeleted: $isDeleted }) {
     category {
       id
     }
   }
 }
 
-mutation categoryRemove($id: ID!) {
-  categoryRemove(input: { id: $id }) {
+mutation helpCategoryRemove($id: ID!) {
+  helpCategoryRemove(input: { id: $id }) {
     category {
       id
     }

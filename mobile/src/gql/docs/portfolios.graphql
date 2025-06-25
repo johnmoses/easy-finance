@@ -1,0 +1,148 @@
+# Portfolios
+query portfolioList (
+    $search: String
+    $isDeleted: Boolean
+    $first: Int
+    $last: Int
+    $after: String
+    $before: String
+) {
+  portfolios(
+    search: $search
+    isDeleted: $isDeleted
+    first: $first
+    last: $last
+    after: $after
+    before: $before
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        description
+        createdAt
+        isModified
+        modifiedAt
+        isDeleted
+        deletedAt
+        restoredAt
+        stocks {
+          count
+          pageInfo {
+            startCursor
+            endCursor
+          }
+          edges {
+            cursor
+            node {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+query portfolioSelect($id: ID!) {
+  portfolio(id: $id) {
+    id
+    name
+    description
+    createdAt
+    isModified
+    modifiedAt
+    isDeleted
+    deletedAt
+    restoredAt
+    stocks {
+      count
+      pageInfo {
+        startCursor
+        endCursor
+      }
+      edges {
+        cursor
+        node {
+          id
+          name
+        }
+      }
+    }
+  }
+}
+
+mutation portfolioCreate (
+    $name: String
+    $description: String
+) {
+  portfolioCreate(
+    input: { name: $name, description: $description }
+  ) {
+    portfolio {
+      id
+    }
+  }
+}
+
+mutation portfolioUpdate (
+    $id: ID!
+    $name: String
+    $description: String
+) {
+  portfolioUpdate(
+    input: { id: $id, name: $name, description: $description }
+  ) {
+    portfolio {
+      id
+    }
+  }
+}
+
+mutation portfolioDelete ($id: ID!, $isDeleted: Boolean) {
+  portfolioDelete(input: { id: $id, isDeleted: false }) {
+    clientMutationId
+    portfolio {
+      id
+    }
+  }
+}
+
+mutation portfolioRemove ($id: ID!) {
+  portfolioRemove(input: { id: $id }) {
+    portfolio {
+      id
+    }
+  }
+}
+
+mutation portfolioStockAdd (
+    $id: ID!
+    $stockids: String!
+) {
+  portfolioStockAdd(id: $id, stockids: $stockids) {
+    portfolio {
+      id
+    }
+  }
+}
+
+mutation portfolioStockRemove ($id: ID!, $stockId: ID!) {
+  portfolioStockRemove(
+    input: { id: $id, stockId: $stockId }
+  ) {
+    portfolio {
+      id
+    }
+  }
+}
+

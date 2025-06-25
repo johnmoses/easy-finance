@@ -1,8 +1,24 @@
 # Reviews
 query reviewList(
-  $itemId: String, $itemType: String, $reviewerId: ID, $isDeleted: Boolean, $last: Int 
+  $itemId: String, 
+  $itemType: String, 
+  $userId: ID, 
+  $isDeleted: Boolean, 
+  $first: Int
+  $last: Int
+  $after: String
+  $before: String
 ) {
-  reviews (itemId: $itemId, itemType: $itemType, reviewerId: $reviewerId, isDeleted: $isDeleted, last: $last) {
+  reviews (
+    itemId: $itemId, 
+    itemType: $itemType, 
+    userId: $userId, 
+    isDeleted: $isDeleted, 
+    first: $first
+    last: $last
+    after: $after
+    before: $before
+    ) {
     count
     pageInfo {
       hasNextPage
@@ -15,7 +31,7 @@ query reviewList(
         id
         content
         rating
-        reviewer {
+        user {
           id
           username
         }
@@ -37,7 +53,7 @@ query reviewSelect ($id: ID!) {
     id
     content
     rating
-    reviewer {
+    user {
       id
       username
     }

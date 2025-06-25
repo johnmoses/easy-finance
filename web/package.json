@@ -28,7 +28,6 @@
     "@tinymce/tinymce-react": "^4.3.2",
     "analytics": "^0.8.9",
     "axios": "^1.7.8",
-    "chart.js": "^4.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3": "^7.8.5",

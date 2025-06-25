@@ -1,12 +1,12 @@
 import { Progress } from "@/components/ui/progress";
 import { AppContext } from "@/context/AppContext";
-import { useCategoryListQuery } from "@/gql/schemas";
+import { useHelpCategoryListQuery } from "@/gql/schemas";
 import Link from "next/link";
 import React, { useContext } from "react";
 
 export const CategoryModal = () => {
   const { showhelps } = useContext(AppContext);
-  const { loading, data, error } = useCategoryListQuery({
+  const { loading, data, error } = useHelpCategoryListQuery({
     variables: { slug: "", isDeleted: false },
   });
 
@@ -24,7 +24,7 @@ export const CategoryModal = () => {
   }
   return (
     <div className="helps-body">
-      {data?.categories?.edges.map((category) => (
+      {data?.helpCategories?.edges.map((category) => (
         <div key={category?.node?.id}>
           <Link onClick={() => showhelps(category?.node?.id)} href={"#"}>
             {category?.node?.name}

@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-// import { SearchBox } from "@/components/search/SearchBox";
+import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -8,62 +7,55 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { apixClient } from "@/clients/axios";
+import { useStockListQuery } from "@/gql/schemas";
+import React from "react";
 
 interface TablifyProps {
-  isDeleted?: boolean;
+  search?: string;
   last?: number;
 }
 
 export const Tablify: React.FC<TablifyProps> = (props) => {
-  const [stocks, setStocks] = useState<any[]>([]);
+  const { loading, data, error } = useStockListQuery({
+    variables: {
+      search: props.search,
+      last: props.last,
+    },
+  });
 
-  const getStocks = async () => {
-    apixClient
-    .post(`/stocks`, {
-      last: 5,
-    })
-      .then((response) => {
-        setStocks(response.data);
-        console.log('stocks: ', response);
-      })
-      .catch((e) => {
-        console.log("no data", e);
-      });
-  };
+  if (loading) {
+    return (
+      <div className="text-center">
+         <Progress value={33} />
+      </div>
+    );
+  }
 
-  React.useEffect(() => {
-    getStocks();
-  }, []);
-
-
-  const handleSearch = (search: string) => {
-    
-  };
+  if (error) {
+    return <div>No Data</div>;
+  }
 
   return (
     <>
       <h1>Stocks</h1>
-      {/* <img src={`data:image/png:base64,${plot}`} /> */}
-      {/* <SearchBox doSearch={handleSearch} /> */}
-      {/* <Table>
+      <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Date</TableHead>
-          </TableRow>
+          <TableHead>Description</TableHead>
+          <TableHead>Date</TableHead>
         </TableHeader>
         <TableBody>
-          {portfolios.map((portfolio) => (
-            <TableRow key={portfolio.Date}>
-              <TableCell className="px-6 py-4">{portfolio.Date}</TableCell>
+          {data?.stocks?.edges.map((stock) => (
+            <TableRow key={stock?.node?.id}>
               <TableCell className="px-6 py-4">
-                {portfolio.Date}
+                {stock?.node?.description}
+              </TableCell>
+              <TableCell className="px-6 py-4">
+                {stock?.node?.createdAt}
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
-      </Table> */}
+      </Table>
     </>
   );
 };

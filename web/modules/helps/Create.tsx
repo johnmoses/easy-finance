@@ -9,8 +9,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  CategoryListDocument,
-  CategoryListQuery,
+  HelpCategoryListDocument,
+  HelpCategoryListQuery,
   useHelpCreateMutation,
 } from "@/gql/schemas";
 import { SelectorObject } from "@/types";
@@ -47,11 +47,11 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
   const getCategoryData = async () => {
     let data: SelectorObject[] = [];
     try {
-      const res = await client.query<CategoryListQuery>({
-        query: CategoryListDocument,
+      const res = await client.query<HelpCategoryListQuery>({
+        query: HelpCategoryListDocument,
       });
       if (res !== undefined) {
-        const categories = res?.data?.categories?.edges;
+        const categories = res?.data?.helpCategories?.edges;
         categories?.forEach((obj) => {
           data.push({ value: obj?.node?.id, label: obj?.node?.name });
         });
@@ -82,14 +82,6 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
         pic: pic,
         categoryId: categoryId,
       },
-      // refetchQueries: [
-      //   {
-      //     query: HelpListDocument,
-      //     variables: {
-      //       last: last,
-      //     },
-      //   },
-      // ],
     })
       .then(() => {
         setTitle("");
@@ -146,17 +138,6 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
-          {/* <div>
-            <div className="mb-2 block">
-              <Label htmlFor="content" />
-            </div>
-            <Textarea
-              id="content"
-              value={content}
-              rows={3}
-              onChange={(e) => setContent(e.target.value)}
-            />
-          </div> */}
           <Editor
             value={content}
             init={{

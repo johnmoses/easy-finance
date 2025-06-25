@@ -51,6 +51,25 @@ query userList(
         isDeleted
         deletedAt
         restoredAt
+        portfolio {
+          stocks {
+            edges {
+              node {
+                id
+                symbol
+              }
+            }
+          }
+        }
+        userAccounts {
+          count
+        }
+        userOrders {
+          count
+        }
+        userReviews {
+          count
+        }
       }
     }
   }
@@ -82,6 +101,49 @@ query userSelect($id: ID!) {
     isDeleted
     deletedAt
     restoredAt
+    portfolio {
+      stocks {
+        edges {
+          node {
+            id
+            symbol
+          }
+        }
+      }
+    }
+    userAccounts {
+      count
+      edges {
+        node {
+          id
+          balance
+          currency
+          category {
+            id
+            name
+          }
+        }
+      }
+    }
+    userOrders {
+      count
+      edges {
+        node {
+          id
+          quantity
+        }
+      }
+    }
+    userReviews {
+      count
+      edges {
+        node {
+          id
+          itemId
+          itemType
+        }
+      }
+    }
   }
 }
 
@@ -111,6 +173,49 @@ query meQuery {
     isDeleted
     deletedAt
     restoredAt
+    portfolio {
+      stocks {
+        edges {
+          node {
+            id
+            symbol
+          }
+        }
+      }
+    }
+    userAccounts {
+      count
+      edges {
+        node {
+          id
+          balance
+          currency
+          category {
+            id
+            name
+          }
+        }
+      }
+    }
+    userOrders {
+      count
+      edges {
+        node {
+          id
+          quantity
+        }
+      }
+    }
+    userReviews {
+      count
+      edges {
+        node {
+          id
+          itemId
+          itemType
+        }
+      }
+    }
   }
 }
 
@@ -206,8 +311,8 @@ mutation adminToggle($id: ID!, $isAdmin: Boolean) {
   }
 }
 
-mutation superToggle($id: ID!, $isSuperadmin: Boolean) {
-  superToggle(input: { id: $id, isSuperadmin: $isSuperadmin }) {
+mutation superToggle($id: ID!, $isSuperuser: Boolean) {
+  superToggle(input: { id: $id, isSuperuser: $isSuperuser }) {
     clientMutationId
   }
 }

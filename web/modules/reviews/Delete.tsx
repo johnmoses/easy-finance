@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ReviewListDocument, useReviewDeleteMutation } from "@/gql/schemas";
+import { useReviewDeleteMutation } from "@/gql/schemas";
 import { AppContext } from "@/context/AppContext";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -36,15 +36,6 @@ export const Delete = ({
   const handleDelete = () => {
     reviewDelete({
       variables: { id: node.id },
-      // refetchQueries: [
-      //   {
-      //     query: ReviewListDocument,
-      //     variables: {
-      //       last: last,
-      //       isDeleted: isDeleted,
-      //     },
-      //   },
-      // ],
     })
       .then(() => {
         track(

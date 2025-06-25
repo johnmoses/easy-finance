@@ -1,0 +1,370 @@
+# Stocks
+query stockList (
+    $search: String
+    $first: Int
+    $last: Int
+    $after: String
+    $before: String
+) {
+  stocks(
+    search: $search
+    first: $first
+    last: $last
+    after: $after
+    before: $before
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        symbol
+        name
+        description
+        exchange
+        createdAt
+      }
+    }
+  }
+}
+
+query stockSelect ($id: ID!) {
+  stock(id: $id) {
+    id
+    symbol
+    name
+    description
+    exchange
+    createdAt
+  }
+}
+
+mutation stockCreate(
+    $symbol: String
+    $name: String
+    $description: String
+    $exchange: String
+) {
+  stockCreate(
+    input: {
+      symbol: $symbol
+      name: $name
+      description: $description
+      exchange: $exchange
+    }
+  ) {
+    stock {
+      id
+    }
+  }
+}
+
+mutation stockUpdate (
+    $id: ID!
+    $symbol: String
+    $name: String
+    $description: String
+    $exchange: String
+) {
+  stockUpdate(
+    input: {
+      id: $id
+      symbol: $symbol
+      name: $name
+      description: $description
+      exchange: $exchange
+    }
+  ) {
+    stock {
+      id
+    }
+  }
+}
+
+mutation stockDelete($id: ID!, $isDeleted: Boolean) {
+  stockDelete(input: { id: $id, isDeleted: false }) {
+    stock {
+      id
+    }
+  }
+}
+
+mutation stockRemove($id: ID!) {
+  stockRemove(input: { id: $id }) {
+    stock {
+      id
+    }
+  }
+}
+
+query stockpriceList (
+  $search: String
+  $first: Int
+  $last: Int
+  $after: String
+  $before: String
+) {
+  stockprices (
+    search: $search
+    first: $first
+    last: $last
+    after: $after
+    before: $before
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        open
+        high
+        low
+        close
+        volume
+        createdAt
+        stock {
+          id
+          symbol
+          name
+        }
+      }
+    }
+  }
+}
+
+query stockpriceSelect ($id: ID!) {
+  stockprice(id: $id) {
+    id
+    open
+    high
+    low
+    close
+    volume
+    createdAt
+    stock {
+      id
+      symbol
+      name
+    }
+  }
+}
+
+mutation stockpriceCreate (
+    $open: Float
+    $high: Float
+    $low: Float
+    $close: Float
+    $volume: Float
+    $stockId: ID!
+) {
+  stockpriceCreate(
+    input: {
+      open: $open,
+      high: $high,
+      low: $low,
+      close: $close,
+      volume: $volume
+      stockId: $stockId
+    }
+  ) {
+    stockprice {
+      id
+    }
+  }
+}
+
+mutation portfolioAdd (
+  $stockids: String!
+) {
+  portfolioAdd(stockids: $stockids) {
+    user {
+      id
+    }
+  }
+}
+
+mutation portfolioRemove (
+  $stockId: ID!
+) {
+  portfolioRemove(
+    input: { stockId: $stockId }
+  ) {
+    user {
+      id
+    }
+  }
+}
+
+query strategyList (
+  $search: String
+  $first: Int
+  $last: Int
+  $after: String
+  $before: String
+) {
+  strategies (
+    search: $search
+    first: $first
+    last: $last
+    after: $after
+    before: $before
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        performOrder
+        priority
+        createdAt
+      }
+    }
+  }
+}
+
+query strategySelect($id: ID!) {
+  strategy(id: $id) {
+    id
+    name
+    performOrder
+    priority
+    createdAt
+  }
+}
+
+mutation strategyCreate (
+    $name: String
+) {
+  strategyCreate(
+    input: {
+      name: $name
+    }
+  ) {
+    strategy {
+      id
+    }
+  }
+}
+
+query orderList (
+  $search: String
+  $first: Int
+  $last: Int
+  $after: String
+  $before: String
+) {
+  orders (
+    search: $search
+    first: $first
+    last: $last
+    after: $after
+    before: $before
+  ) {
+    count
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        quantity
+        active
+        short
+        buyPrice
+        buyTime
+        sellPrice
+        sellTime
+        user {
+          id
+          username
+        }
+        strategy {
+          id
+          name
+        }
+        account {
+          id
+          balance
+          user {
+            id
+            username
+          }
+        }
+        createdAt
+      }
+    }
+  }
+}
+
+query orderSelect ($id: ID!) {
+  order(id: $id) {
+    id
+    quantity
+    active
+    short
+    buyPrice
+    buyTime
+    sellPrice
+    sellTime
+    user {
+      id
+      username
+    }
+    strategy {
+      id
+      name
+    }
+    account {
+      id
+      balance
+    }
+    createdAt
+  }
+}
+
+mutation orderCreate (
+    $accountId: ID!
+    $strategyId: ID!
+    $stockId: ID!
+    $quantity: Float
+    $buyPrice: Float
+    $sellPrice: Float
+) {
+  orderCreate(
+    input: {
+      accountId: $accountId
+      strategyId: $strategyId
+      stockId: $stockId
+      quantity: $quantity
+      buyPrice: $buyPrice
+      sellPrice: $sellPrice
+    }
+  ) {
+    order {
+      id
+    }
+  }
+}

@@ -8,10 +8,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { AppContext } from "@/context/AppContext";
-import { useCategoryCreateMutation } from "@/gql/schemas";
+import { useAccountCreateMutation } from "@/gql/schemas";
 import React, { useContext, useState } from "react";
 
 interface CreateProps {
@@ -23,46 +22,35 @@ interface CreateProps {
 export const Create = ({ last, open, onClose }: CreateProps) => {
   const { toast } = useToast();
   const { track } = useContext(AppContext);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [pic, setPic] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [currency, setCurrency] = useState("");
   const [message, setMessage] = useState("");
-  const [categoryCreate] = useCategoryCreateMutation();
+  const [accountCreate] = useAccountCreateMutation();
 
   const validateEntries = () => {
-    if (name === "") {
+    if (categoryId === "") {
       return true;
     }
     return false;
   };
 
   const handleCreate = async () => {
-    categoryCreate({
+    accountCreate({
       variables: {
-        name: name,
-        description: description,
-        pic: pic,
+        categoryId: categoryId,
+        currency: currency,
       },
-      // refetchQueries: [
-      //   {
-      //     query: CategoryListDocument,
-      //     variables: {
-      //       last: last,
-      //     },
-      //   },
-      // ],
     })
       .then(() => {
-        setName("");
-        setDescription("");
-        setPic("");
+        setCategoryId("");
+        setCurrency("");
         setMessage("");
         onClose();
         toast({
-          title: "Help category created",
-          description: "You have created help category",
+          title: "Account created",
+          description: "You have created account",
         });
-        track("Created help category", `${name} `);
+        track("Created account", `${name} `);
       })
       .catch(() => {
         setMessage("Cannot add content this time!");
@@ -82,23 +70,11 @@ export const Create = ({ last, open, onClose }: CreateProps) => {
               <Label htmlFor="title" />
             </div>
             <Input
-              id="name"
-              value={name}
-              placeholder="Name"
+              id="currency"
+              value={currency}
+              placeholder="Currency"
               required
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div>
-            <div className="mb-2 block">
-              <Label htmlFor="description" />
-            </div>
-            <Textarea
-              id="description"
-              value={description}
-              placeholder="Description"
-              rows={3}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => setCurrency(e.target.value)}
             />
           </div>
         </div>

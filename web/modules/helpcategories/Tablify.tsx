@@ -1,4 +1,4 @@
-import { useCategoryListQuery } from "@/gql/schemas";
+import { useHelpCategoryListQuery } from "@/gql/schemas";
 import React, { useState } from "react";
 import { MdAddCircle } from "react-icons/md";
 import { Create } from "./Create";
@@ -32,7 +32,7 @@ interface TablifyProps {
 }
 
 export const Tablify: React.FC<TablifyProps> = (props) => {
-  const { loading, data, error, refetch } = useCategoryListQuery({
+  const { loading, data, error, refetch } = useHelpCategoryListQuery({
     variables: { slug: "", isDeleted: false },
   });
 
@@ -114,7 +114,7 @@ export const Tablify: React.FC<TablifyProps> = (props) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data?.categories?.edges.map((category) => (
+          {data?.helpCategories?.edges.map((category) => (
             <TableRow key={category?.node?.id}>
               <TableCell className="px-6 py-4">
                 {category?.node?.name}

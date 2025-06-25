@@ -14,7 +14,10 @@
     "jsx": "preserve",
     "incremental": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "plotly.js": [
+        "../node_modules/plotly.js/lib/core.js"
+    ]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
