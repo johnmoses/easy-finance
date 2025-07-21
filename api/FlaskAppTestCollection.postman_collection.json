@@ -1,0 +1,143 @@
+{
+    "info": {
+      "name": "FlaskAppTestCollection",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Register User",
+        "request": {
+          "method": "POST",
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"secret123\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/api/auth/register",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["api", "auth", "register"]
+          }
+        }
+      },
+      {
+        "name": "Login User",
+        "request": {
+          "method": "POST",
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"secret123\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/api/auth/login",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["api", "auth", "login"]
+          }
+        }
+      },
+      {
+        "name": "Create Budget",
+        "request": {
+          "method": "POST",
+          "header": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "Authorization", "value": "Bearer {{access_token}}" }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"name\": \"June Budget\",\n  \"limit\": 1500.00,\n  \"period_start\": \"2025-06-01\",\n  \"period_end\": \"2025-06-30\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/api/budgets/budgets",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["api", "budgets", "budgets"]
+          }
+        }
+      },
+      {
+        "name": "Get Budgets",
+        "request": {
+          "method": "GET",
+          "header": [
+            { "key": "Authorization", "value": "Bearer {{access_token}}" }
+          ],
+          "url": {
+            "raw": "http://localhost:5000/api/budgets/budgets",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["api", "budgets", "budgets"]
+          }
+        }
+      },
+      {
+        "name": "Create Transaction",
+        "request": {
+          "method": "POST",
+          "header": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "Authorization", "value": "Bearer {{access_token}}" }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"amount\": 50.75,\n  \"category\": \"Groceries\",\n  \"description\": \"Supermarket purchase\",\n  \"budget_id\": 1\n}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/api/transactions/transactions",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["api", "transactions", "transactions"]
+          }
+        }
+      },
+      {
+        "name": "List Transactions",
+        "request": {
+          "method": "GET",
+          "header": [
+            { "key": "Authorization", "value": "Bearer {{access_token}}" }
+          ],
+          "url": {
+            "raw": "http://localhost:5000/api/transactions/transactions/1",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["api", "transactions", "transactions", "1"]
+          }
+        }
+      },
+      {
+        "name": "Chat with LLM",
+        "request": {
+          "method": "POST",
+          "header": [
+            { "key": "Content-Type", "value": "application/json" }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"message\": \"Can you compare the stock prices of Apple and Microsoft?\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:5000/api/chat/chat",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "5000",
+            "path": ["api", "chat", "chat"]
+          }
+        }
+      }
+    ]
+  }
+  
