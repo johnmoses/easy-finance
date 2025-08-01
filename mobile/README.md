@@ -1,79 +1,204 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# EasyFinance Mobile App
 
-# Getting Started
+A comprehensive financial management mobile application built with React Native 0.80.0, featuring blockchain integration, AI chat support, and modern financial tools.
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+## Features
 
-## Step 1: Start the Metro Server
+### 🏠 **Dashboard (Home)**
+- Real-time balance overview
+- Quick action cards for transactions, investments, and goals
+- Financial summary with key metrics
+- Quick access to core features
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+### 🔐 **Authentication**
+- Secure login and registration
+- JWT token-based authentication
+- Form validation and error handling
+- Seamless navigation flow
 
-To start Metro, run the following command from the _root_ of your React Native project:
+### 💰 **Finance Management**
+- Transaction tracking (income/expense)
+- Category-based organization
+- Add new transactions with modal interface
+- Real-time balance calculations
+- Transaction history with filtering
 
-```bash
-# using npm
-npm start
+### 📈 **Wealth Management**
+- Investment portfolio overview
+- Real-time stock/crypto tracking
+- Performance metrics and analytics
+- Portfolio diversification insights
+- Gain/loss calculations
 
-# OR using Yarn
-yarn start
+### 🎯 **Financial Planning**
+- Goal setting and tracking
+- Progress visualization with progress bars
+- Deadline management
+- Category-based goal organization
+- Achievement milestones
+
+### ⛓️ **Blockchain Integration**
+- Live blockchain visualization
+- Block mining simulation
+- Transaction validation
+- Hash verification
+- Nonce and timestamp tracking
+
+### 🤖 **AI Chat Assistant**
+- Intelligent financial queries
+- Real-time chat interface
+- Context-aware responses
+- Financial advice and insights
+- Natural language processing
+
+## Tech Stack
+
+- **React Native**: 0.80.0
+- **React Navigation**: 7.x (Stack & Bottom Tabs)
+- **TypeScript**: Full type safety
+- **Axios**: API communication
+- **Context API**: State management
+- **React Hooks**: Modern React patterns
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+├── context/            # Global state management
+├── navigation/         # Navigation configuration
+├── screens/           # Main app screens
+├── services/          # API services
+└── types/            # TypeScript definitions
 ```
 
-## Step 2: Start your Application
+## Installation
 
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
-
+1. **Install dependencies**:
 ```bash
-# using npm
-npm run android
+npm install
+# or
+yarn install
+```
 
-# OR using Yarn
+2. **iOS Setup**:
+```bash
+cd ios && pod install && cd ..
+```
+
+3. **Run the app**:
+```bash
+# iOS
+npm run ios
+# or
+yarn ios
+
+# Android
+npm run android
+# or
 yarn android
 ```
 
-### For iOS
+## API Integration
+
+The app connects to the Flask API backend at `http://localhost:5000/api` with the following endpoints:
+
+- **Auth**: `/auth/login`, `/auth/register`, `/auth/logout`
+- **Finance**: `/finance/transactions`, `/finance/accounts`
+- **Wealth**: `/wealth/portfolio`, `/wealth/investments`
+- **Planning**: `/planning/goals`
+- **Blockchain**: `/blockchain/chain`, `/blockchain/mine`
+- **Chat**: `/chat/message`, `/chat/history`
+
+## Key Components
+
+### Navigation
+- **Stack Navigator**: Auth flow management
+- **Bottom Tab Navigator**: Main app navigation
+- **Screen transitions**: Smooth navigation experience
+
+### State Management
+- **AppContext**: Global state with useReducer
+- **Custom Hooks**: useAuth, useFinance, useWealth, usePlanning
+- **Type Safety**: Full TypeScript integration
+
+### UI/UX Features
+- **Responsive Design**: Works on all screen sizes
+- **Dark Mode Support**: System theme detection
+- **Loading States**: User feedback during API calls
+- **Error Handling**: Graceful error management
+- **Form Validation**: Input validation and feedback
+
+## Development
+
+### Adding New Features
+1. Create screen in `src/screens/`
+2. Add navigation route in `AppNavigator.tsx`
+3. Create API service in `src/services/api.ts`
+4. Add types in `src/types/index.ts`
+5. Update context if needed
+
+### Code Style
+- **ESLint**: Code linting
+- **Prettier**: Code formatting
+- **TypeScript**: Type checking
+- **Consistent naming**: camelCase for variables, PascalCase for components
+
+## Testing
 
 ```bash
-# using npm
-npm run ios
+# Run tests
+npm test
+# or
+yarn test
 
-# OR using Yarn
-yarn ios
+# Run with coverage
+npm run test:coverage
 ```
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+## Build & Deploy
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+### Development Build
+```bash
+# iOS
+npx react-native run-ios --configuration Debug
 
-## Step 3: Modifying your App
+# Android
+npx react-native run-android --variant debug
+```
 
-Now that you have successfully run the app, let's modify it.
+### Production Build
+```bash
+# iOS
+npx react-native run-ios --configuration Release
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+# Android
+npx react-native run-android --variant release
+```
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+## Performance Optimization
 
-## Congratulations! :tada:
+- **Lazy Loading**: Screen-based code splitting
+- **Image Optimization**: Proper image handling
+- **Memory Management**: Efficient state updates
+- **API Caching**: Reduced network calls
+- **Bundle Size**: Optimized dependencies
 
-You've successfully run and modified your React Native App. :partying_face:
+## Security Features
 
-### Now what?
+- **JWT Authentication**: Secure token management
+- **API Security**: Request/response validation
+- **Data Encryption**: Sensitive data protection
+- **Secure Storage**: Local data security
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
+## Contributing
 
-# Troubleshooting
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
 
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+## License
 
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+This project is licensed under the MIT License.

@@ -1,37 +1,64 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_socketio import SocketIO
-from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 from llama_cpp import Llama
 from pymilvus import MilvusClient
+from sentence_transformers import SentenceTransformer
 import pathlib
+import logging
 
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
-socketio = SocketIO()
+jwt_blacklist = set() # In-memory blacklist for JTI (for single-instance dev/testing)
+socketio = SocketIO(cors_allowed_origins="*") # Consider specifying async_mode="eventlet" if using eventlet
 ma = Marshmallow()
 
+# Global instances for Llama, Embedding Model, and Milvus Client
 llama_model = None
-
-db_path = "./milvus_demo.db"
-collection_name = "demo_collection"
-embedding_dim = 384
-
-# Global variables (initialized as None)
+embed_model = None
 _milvus_client = None
 
-def init_llama_model(model_path, n_ctx=4096, n_gpu_layers=0):
+db_path = "./milvus_finance.db"
+collection_name = "finance_documents"
+embedding_dim = 384
+
+def init_llama_model(model_path: str, n_ctx: int = 4096, n_gpu_layers: int = 0, verbose: bool = False):
+    """
+    Initializes the global Llama model instance.
+    Raises RuntimeError if initialization fails.
+    """
     global llama_model
     if llama_model is None:
-        llama_model = Llama(
-            model_path=model_path,
-            n_ctx=n_ctx,
-            n_gpu_layers=n_gpu_layers,
-        )
+        try:
+            llama_model = Llama(
+                model_path=model_path,
+                n_ctx=n_ctx,
+                n_gpu_layers=n_gpu_layers,
+                verbose=verbose,
+            )
+            logging.info(f"Llama model loaded from {model_path} with context {n_ctx}")
+        except Exception as e:
+            logging.error(f"Failed to load Llama model from {model_path}: {e}")
+            raise RuntimeError(f"Error loading Llama model: {e}")
     return llama_model
 
+def init_embed_model(model_name: str = "all-MiniLM-L6-v2"):
+    """
+    Initializes and returns the global SentenceTransformer embedding model.
+    Raises RuntimeError if initialization fails.
+    """
+    global embed_model
+    if embed_model is None:
+        try:
+            embed_model = SentenceTransformer(model_name)
+            logging.info(f"Embedding model '{model_name}' loaded successfully.")
+        except Exception as e:
+            logging.error(f"Failed to load embedding model '{model_name}': {e}")
+            raise RuntimeError(f"Error loading embedding model: {e}")
+    return embed_model
 
 def init_milvus_client(db_path=db_path, collection=collection_name, dim=embedding_dim):
     """
@@ -70,57 +97,118 @@ def get_milvus_client():
         )
     return _milvus_client
 
-def insert_documents(docs: list):
+def insert_documents(docs: list, collection_name: str = None):
     """
     Insert documents into Milvus collection.
-    docs: List of dict where each dict should have keys: 'id', 'vector', 'text', 'subject'
+    docs: List of dict where each dict should have keys: 'id' (optional), 'text', 'subject' (optional).
+          Vectors will be generated from 'text' using embed_model.
     """
-    global milvus_client
-    if not milvus_client:
-        raise ValueError("Milvus client not initialized")
-    return milvus_client.insert(collection_name=collection_name, data=docs)
+    client = get_milvus_client()
+    current_collection = collection_name if collection_name else client.collection_name # Use passed name or default
 
-def search_vectors(query_vectors, top_k=5, filter_expr=None):
+    if embed_model is None:
+        raise ValueError("Embedding model not initialized. Call init_embed_model() first.")
+
+    data_to_insert = []
+    for doc in docs:
+        if 'text' not in doc:
+            raise ValueError("Document must contain 'text' field for embedding.")
+        
+        doc_vector = embed_model.encode(doc['text']).tolist() # Convert numpy array to list
+        
+        new_doc = {
+            "text": doc['text'],
+            "subject": doc.get('subject', 'finance'), # Default to finance category
+            "vector": doc_vector
+        }
+        # Only add 'id' if it's explicitly provided and not None, otherwise Milvus auto-generates
+        if 'id' in doc and doc['id'] is not None:
+            new_doc["id"] = doc['id']
+            
+        data_to_insert.append(new_doc)
+
+    logging.info(f"Inserting {len(data_to_insert)} documents into Milvus collection '{current_collection}'.")
+    return client.insert(collection_name=current_collection, data=data_to_insert)
+
+def search_vectors(query_embedding: list, top_k=5, filter_expr=None):
     """
     Search similar vectors.
-    query_vectors: list of vectors (list of floats).
-    filter_expr: string filter expression, e.g. "subject == 'history'"
+    query_embedding: a single vector (list of floats) representing the query.
+    filter_expr: string filter expression, e.g. "subject == 'investment'"
     """
-    global milvus_client
-    if not milvus_client:
+    global _milvus_client
+    if _milvus_client is None:
         raise ValueError("Milvus client not initialized")
 
-    return milvus_client.search(
+    return _milvus_client.search(
         collection_name=collection_name,
-        data=query_vectors,
+        data=[query_embedding], # MilvusClient.search expects a list of query vectors
         filter=filter_expr,
         limit=top_k,
-        output_fields=["text", "subject"]
+        output_fields=["text", "subject", "id"]
     )
 
-def query_documents(filter_expr=None):
+def query_documents(filter_expr: str = None, collection_name: str = None):
     """
     Query documents by filter expression (no vector similarity).
     """
-    global milvus_client
-    if not milvus_client:
-        raise ValueError("Milvus client not initialized")
+    client = get_milvus_client()
+    current_collection = collection_name if collection_name else client.collection_name # Use passed name or default
 
-    return milvus_client.query(
-        collection_name=collection_name,
+    logging.info(f"Querying Milvus collection '{current_collection}' with filter='{filter_expr}'")
+    return client.query(
+        collection_name=current_collection,
         filter=filter_expr,
-        output_fields=["text", "subject"]
+        output_fields=["text", "subject", "id"]
     )
 
-def delete_documents(filter_expr=None):
+def delete_documents(filter_expr: str, collection_name: str = None):
     """
     Delete documents matching filter expression.
+    Filter expression is required for safety.
     """
-    global milvus_client
-    if not milvus_client:
-        raise ValueError("Milvus client not initialized")
+    client = get_milvus_client()
+    current_collection = collection_name if collection_name else client.collection_name # Use passed name or default
 
-    return milvus_client.delete(
-        collection_name=collection_name,
+    if not filter_expr:
+        raise ValueError("A filter expression is required to delete documents for safety.")
+        
+    logging.info(f"Deleting documents from Milvus collection '{current_collection}' with filter='{filter_expr}'")
+    return client.delete(
+        collection_name=current_collection,
         filter=filter_expr,
     )
+
+def get_rag_context(query: str, top_k: int = 5) -> str:
+    """
+    Generates a RAG context string from the Milvus vector database based on a query.
+    """
+    if embed_model is None:
+        raise RuntimeError("Embedding model is not initialized. Call init_embed_model() first.")
+    
+    # Ensure Milvus client is initialized before attempting to use it
+    try:
+        get_milvus_client() 
+    except RuntimeError as e:
+        logging.error(f"Milvus client not initialized for RAG context: {e}")
+        raise
+
+    embedding = embed_model.encode(query).tolist()
+    results = search_vectors(embedding, top_k=top_k)
+
+    if not results or len(results) == 0 or not results[0]:
+        logging.warning(f"No relevant context found for query: '{query}'")
+        return ""
+
+    # Each 'result' is a list of hits for one query (since we pass data=[query_embedding])
+    # Each 'hit' in results[0] has an 'entity' attribute (dict)
+    contexts = [
+        hit.entity.get('text', '') 
+        for hit in results[0] 
+        if hit.entity and 'text' in hit.entity
+    ]
+    
+    # Concatenate contexts, using double newline for better readability
+    logging.info(f"Found {len(contexts)} contexts for query: '{query}'")
+    return "\n\n".join(contexts)
+

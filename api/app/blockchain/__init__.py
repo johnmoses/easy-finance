@@ -1,0 +1,1 @@
+# Blockchain module - Crypto, DeFi, NFTs, and Blockchain operations

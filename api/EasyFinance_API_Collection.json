@@ -1,0 +1,978 @@
+{
+	"info": {
+		"_postman_id": "easyfinance-api-collection",
+		"name": "EasyFinance API Collection - Complete",
+		"description": "Complete API collection for EasyFinance - Personal Finance Management Platform with AI, Blockchain, and DeFi features",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5001/api",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('user_id', response.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"john_doe\",\n    \"email\": \"john@easyfinance.com\",\n    \"password\": \"password123\",\n    \"role\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('access_token', response.access_token);",
+									"    pm.collectionVariables.set('user_id', response.user.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"john_doe\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/profile",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"john_doe_updated\",\n    \"email\": \"john.updated@easyfinance.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/profile",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"old_password\": \"password123\",\n    \"new_password\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/change-password",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "change-password"]
+						}
+					}
+				},
+				{
+					"name": "List Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/users",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "users"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🏦 Finance (Accounts & Transactions)",
+			"item": [
+				{
+					"name": "Create Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Main Checking\",\n    \"account_type\": \"checking\",\n    \"balance\": 5000.00,\n    \"currency\": \"USD\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/finance/accounts",
+							"host": ["{{base_url}}"],
+							"path": ["finance", "accounts"]
+						}
+					}
+				},
+				{
+					"name": "Get Accounts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/finance/accounts",
+							"host": ["{{base_url}}"],
+							"path": ["finance", "accounts"]
+						}
+					}
+				},
+				{
+					"name": "Update Account",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Checking Account\",\n    \"balance\": 5500.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/finance/accounts/1",
+							"host": ["{{base_url}}"],
+							"path": ["finance", "accounts", "1"]
+						}
+					}
+				},
+				{
+					"name": "Create Transaction",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 25.50,\n    \"transaction_type\": \"expense\",\n    \"description\": \"Starbucks coffee\",\n    \"account_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/finance/transactions",
+							"host": ["{{base_url}}"],
+							"path": ["finance", "transactions"]
+						}
+					}
+				},
+				{
+					"name": "Get Transactions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/finance/transactions",
+							"host": ["{{base_url}}"],
+							"path": ["finance", "transactions"]
+						}
+					}
+				},
+				{
+					"name": "Get Transactions by Account",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/finance/transactions?account_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["finance", "transactions"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "1"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Transaction",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/finance/transactions/1",
+							"host": ["{{base_url}}"],
+							"path": ["finance", "transactions", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📊 Planning (Budgets & Analytics)",
+			"item": [
+				{
+					"name": "Create Budget",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Monthly Food Budget\",\n    \"category\": \"food\",\n    \"limit\": 500.00,\n    \"period_start\": \"2024-01-01\",\n    \"period_end\": \"2024-01-31\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/planning/budgets",
+							"host": ["{{base_url}}"],
+							"path": ["planning", "budgets"]
+						}
+					}
+				},
+				{
+					"name": "Get Budgets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/planning/budgets",
+							"host": ["{{base_url}}"],
+							"path": ["planning", "budgets"]
+						}
+					}
+				},
+				{
+					"name": "Update Budget",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Food Budget\",\n    \"limit\": 600.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/planning/budgets/1",
+							"host": ["{{base_url}}"],
+							"path": ["planning", "budgets", "1"]
+						}
+					}
+				},
+				{
+					"name": "Delete Budget",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/planning/budgets/1",
+							"host": ["{{base_url}}"],
+							"path": ["planning", "budgets", "1"]
+						}
+					}
+				},
+				{
+					"name": "Spending by Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/planning/analytics/spending-by-category",
+							"host": ["{{base_url}}"],
+							"path": ["planning", "analytics", "spending-by-category"]
+						}
+					}
+				},
+				{
+					"name": "Monthly Trends",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/planning/analytics/monthly-trends",
+							"host": ["{{base_url}}"],
+							"path": ["planning", "analytics", "monthly-trends"]
+						}
+					}
+				},
+				{
+					"name": "Budget Performance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/planning/analytics/budget-performance",
+							"host": ["{{base_url}}"],
+							"path": ["planning", "analytics", "budget-performance"]
+						}
+					}
+				},
+				{
+					"name": "Financial Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/planning/analytics/financial-summary",
+							"host": ["{{base_url}}"],
+							"path": ["planning", "analytics", "financial-summary"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "💰 Wealth (Investments & Goals)",
+			"item": [
+				{
+					"name": "Create Investment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"symbol\": \"AAPL\",\n    \"name\": \"Apple Inc.\",\n    \"quantity\": 10,\n    \"purchase_price\": 150.00,\n    \"current_price\": 175.00,\n    \"investment_type\": \"stock\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/wealth/investments",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "investments"]
+						}
+					}
+				},
+				{
+					"name": "Get Investments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/wealth/investments",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "investments"]
+						}
+					}
+				},
+				{
+					"name": "Portfolio Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/wealth/portfolio-summary",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "portfolio-summary"]
+						}
+					}
+				},
+				{
+					"name": "Create Savings Goal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Emergency Fund\",\n    \"description\": \"6 months of expenses\",\n    \"target_amount\": 10000.00,\n    \"target_date\": \"2024-12-31\",\n    \"priority\": \"high\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/wealth/goals",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "goals"]
+						}
+					}
+				},
+				{
+					"name": "Get Goals",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/wealth/goals",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "goals"]
+						}
+					}
+				},
+				{
+					"name": "Contribute to Goal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 500.00\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/wealth/goals/1/contribute",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "goals", "1", "contribute"]
+						}
+					}
+				},
+				{
+					"name": "Create Price Alert",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"symbol\": \"BTC\",\n    \"target_price\": 50000.00,\n    \"condition\": \"above\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/wealth/price-alerts",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "price-alerts"]
+						}
+					}
+				},
+				{
+					"name": "Get Price Alerts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/wealth/price-alerts",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "price-alerts"]
+						}
+					}
+				},
+				{
+					"name": "Get Notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/wealth/notifications",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "notifications"]
+						}
+					}
+				},
+				{
+					"name": "Mark Notification Read",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/wealth/notifications/1/read",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "notifications", "1", "read"]
+						}
+					}
+				},
+				{
+					"name": "Wealth Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/wealth/wealth-summary",
+							"host": ["{{base_url}}"],
+							"path": ["wealth", "wealth-summary"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🚀 Blockchain (Crypto & DeFi)",
+			"item": [
+				{
+					"name": "Create Crypto Wallet",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Main BTC Wallet\",\n    \"address\": \"1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa\",\n    \"currency\": \"BTC\",\n    \"balance\": 0.5,\n    \"network\": \"mainnet\",\n    \"wallet_type\": \"hot\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/blockchain/wallets",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "wallets"]
+						}
+					}
+				},
+				{
+					"name": "Get Crypto Wallets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/blockchain/wallets",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "wallets"]
+						}
+					}
+				},
+				{
+					"name": "Create DeFi Position",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"protocol\": \"Uniswap\",\n    \"position_type\": \"liquidity\",\n    \"token_pair\": \"ETH/USDC\",\n    \"amount_deposited\": 1000.00,\n    \"current_value\": 1050.00,\n    \"apy\": 12.5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/blockchain/defi",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "defi"]
+						}
+					}
+				},
+				{
+					"name": "Get DeFi Positions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/blockchain/defi",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "defi"]
+						}
+					}
+				},
+				{
+					"name": "Yield Opportunities",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/blockchain/defi/yield-opportunities",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "defi", "yield-opportunities"]
+						}
+					}
+				},
+				{
+					"name": "Add NFT",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Bored Ape #1234\",\n    \"contract_address\": \"0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D\",\n    \"token_id\": \"1234\",\n    \"purchase_price\": 50.0,\n    \"current_price\": 75.0,\n    \"currency\": \"ETH\",\n    \"marketplace\": \"OpenSea\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/blockchain/nfts",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "nfts"]
+						}
+					}
+				},
+				{
+					"name": "Get NFTs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/blockchain/nfts",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "nfts"]
+						}
+					}
+				},
+				{
+					"name": "Mine Block",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"transactions\": [\n        {\n            \"from\": \"user1\",\n            \"to\": \"user2\",\n            \"amount\": 100,\n            \"currency\": \"EFC\"\n        },\n        {\n            \"from\": \"user2\",\n            \"to\": \"user3\",\n            \"amount\": 50,\n            \"currency\": \"EFC\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/blockchain/blockchain/mine",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "blockchain", "mine"]
+						}
+					}
+				},
+				{
+					"name": "Get Blockchain",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/blockchain/blockchain/chain",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "blockchain", "chain"]
+						}
+					}
+				},
+				{
+					"name": "Validate Blockchain",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/blockchain/blockchain/validate",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "blockchain", "validate"]
+						}
+					}
+				},
+				{
+					"name": "Create Crypto Transaction",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"from_address\": \"1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa\",\n    \"to_address\": \"1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2\",\n    \"amount\": 0.001,\n    \"currency\": \"BTC\",\n    \"gas_fee\": 0.00001\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/blockchain/transactions",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "transactions"]
+						}
+					}
+				},
+				{
+					"name": "Get Crypto Transactions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/blockchain/transactions",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "transactions"]
+						}
+					}
+				},
+				{
+					"name": "Blockchain Portfolio Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/blockchain/portfolio-summary",
+							"host": ["{{base_url}}"],
+							"path": ["blockchain", "portfolio-summary"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "💬 Chat (AI Assistant)",
+			"item": [
+				{
+					"name": "Create Chat Room",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Financial Planning Chat\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/rooms",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "rooms"]
+						}
+					}
+				},
+				{
+					"name": "Get Chat Rooms",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/chat/rooms",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "rooms"]
+						}
+					}
+				},
+				{
+					"name": "Join Room",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/chat/rooms/1/participants",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "rooms", "1", "participants"]
+						}
+					}
+				},
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"How should I allocate my investment portfolio?\",\n    \"role\": \"user\",\n    \"message_type\": \"text\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/rooms/1/messages",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "rooms", "1", "messages"]
+						}
+					}
+				},
+				{
+					"name": "Get Room Messages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/chat/rooms/1/messages",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "rooms", "1", "messages"]
+						}
+					}
+				},
+				{
+					"name": "Chat with AI Assistant",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"What's my current financial status and how can I improve it?\",\n    \"role\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/rooms/1/post_message",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "rooms", "1", "post_message"]
+						}
+					}
+				},
+				{
+					"name": "Investment Advice Chat",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Should I invest in Bitcoin or stick to traditional stocks?\",\n    \"role\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/rooms/1/post_message",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "rooms", "1", "post_message"]
+						}
+					}
+				},
+				{
+					"name": "Budget Planning Chat",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"Help me create a monthly budget for $5000 income\",\n    \"role\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/rooms/1/post_message",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "rooms", "1", "post_message"]
+						}
+					}
+				},
+				{
+					"name": "DeFi Strategy Chat",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"content\": \"What are the best DeFi yield farming strategies for beginners?\",\n    \"role\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/chat/rooms/1/post_message",
+							"host": ["{{base_url}}"],
+							"path": ["chat", "rooms", "1", "post_message"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
