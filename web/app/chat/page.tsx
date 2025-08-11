@@ -7,7 +7,10 @@ import { Send, Bot, User, Sparkles, TrendingUp, DollarSign, PieChart } from 'luc
 interface Message {
   id: number;
   content: string;
-  sender: 'user' | 'ai';
+  sender: {
+    id: number;
+    username: string;
+  };
   timestamp: string;
 }
 
@@ -25,14 +28,24 @@ export default function Chat() {
   ]);
 
   useEffect(() => {
-    setMessages([
-      {
-        id: 1,
-        content: "Hello! I'm your AI financial assistant. I can help you with budgeting, investment advice, financial planning, and answer questions about your portfolio. How can I assist you today?",
-        sender: 'ai',
-        timestamp: new Date().toISOString()
+    const fetchMessages = async () => {
+      try {
+        const response = await chatService.getMessages(1); // Assuming room ID 1 for now
+        setMessages(response.data);
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+        // Set a default initial message if fetching fails
+        setMessages([
+          {
+            id: 1,
+            content: "Hello! I'm your AI financial assistant. How can I assist you today?",
+            sender: { id: 0, username: 'finance_assistant' },
+            timestamp: new Date().toISOString()
+          }
+        ]);
       }
-    ]);
+    };
+    fetchMessages();
   }, []);
 
   useEffect(() => {
@@ -47,7 +60,7 @@ export default function Chat() {
     const userMessage: Message = {
       id: Date.now(),
       content: message,
-      sender: 'user',
+      sender: { id: user?.id || 0, username: user?.username || 'User' },
       timestamp: new Date().toISOString()
     };
     
@@ -56,46 +69,28 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const response = await chatService.chatWithAI({ message });
+      const response = await chatService.chatWithAI({ message, sender_id: user?.id });
       
       const aiMessage: Message = {
         id: Date.now() + 1,
-        content: response.data.response || getSmartResponse(message),
-        sender: 'ai',
+        content: response.data.response,
+        sender: { id: 0, username: 'finance_assistant' },
         timestamp: new Date().toISOString()
       };
       
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      const fallbackMessage: Message = {
+      console.error("Failed to get AI response:", error);
+      const errorMessage: Message = {
         id: Date.now() + 1,
-        content: getSmartResponse(message),
-        sender: 'ai',
+        content: "Sorry, I'm having trouble connecting. Please try again later.",
+        sender: { id: 0, username: 'finance_assistant' },
         timestamp: new Date().toISOString()
       };
-      
-      setMessages(prev => [...prev, fallbackMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const getSmartResponse = (question: string): string => {
-    const lowerQuestion = question.toLowerCase();
-    
-    if (lowerQuestion.includes('financial status')) {
-      return "Based on your current data, you have a diversified portfolio with good savings habits. Your monthly expenses are well-managed, and you're on track with most of your financial goals.";
-    }
-    
-    if (lowerQuestion.includes('savings')) {
-      return "Here are ways to improve savings: 1) Set up automatic transfers, 2) Review subscriptions, 3) Use the 50/30/20 rule, 4) Consider high-yield savings accounts.";
-    }
-    
-    if (lowerQuestion.includes('invest')) {
-      return "For investments: 1) Diversify across asset classes, 2) Consider low-cost index funds, 3) Don't time the market, 4) Rebalance quarterly.";
-    }
-    
-    return "I'm here to help with your financial questions! Ask me about budgeting, investing, saving, or financial planning.";
   };
 
   return (
@@ -169,20 +164,17 @@ export default function Chat() {
 
           {messages.map((message) => {
             const isAI = message.sender?.username === 'finance_assistant';
-            const isCurrentUser = message.sender_id === user?.id;
             
             return (
               <div
                 key={message.id}
-                className={`flex ${isCurrentUser && !isAI ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${!isAI ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                     isAI
                       ? 'bg-blue-100 text-blue-900'
-                      : isCurrentUser
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-200 text-gray-900'
+                      : 'bg-green-600 text-white'
                   }`}
                 >
                   <div className="flex items-center mb-1">

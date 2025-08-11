@@ -17,7 +17,7 @@ user_schema = UserSchema()
 users_schema = UserSchema(many=True)
 
 
-# List users (admin only)
+# List users
 @auth_bp.route("/users", methods=["GET"])
 @jwt_required()
 def list_users():
@@ -26,7 +26,12 @@ def list_users():
     if not current_user or current_user.role != 'admin':
         return jsonify({"error": "Admin access required"}), 403
     users = User.query.all()
-    return jsonify(users_schema.dump(users))
+    result = users_schema.dump(users)
+    return jsonify({
+        "status": "success",
+        "data": result,
+        "count": len(result)
+    })
 
 
 # User registration
@@ -71,7 +76,8 @@ def login():
         return jsonify({"error": "Invalid username or password"}), 401
 
     additional_claims = {"roles": [user.role]}
-    access_token = create_access_token(identity=user.id, expires_delta=timedelta(hours=1), additional_claims=additional_claims)
+    access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=1), additional_claims=additional_claims)
+    refresh_token = create_refresh_token(identity=str(user.id), expires_delta=timedelta(days=7), additional_claims=additional_claims)
     refresh_token = create_refresh_token(identity=user.id, expires_delta=timedelta(days=7), additional_claims=additional_claims)
 
     return jsonify({
@@ -81,11 +87,12 @@ def login():
     }), 200
 
 
+
 # Refresh access token
 @auth_bp.route("/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh():
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     additional_claims = {"roles": []}  # or get from previous token if needed
     access_token = create_access_token(identity=current_user_id, expires_delta=timedelta(hours=1), additional_claims=additional_claims)
     return jsonify({"access_token": access_token}), 200
@@ -100,7 +107,6 @@ def profile():
     if not user:
         return jsonify({"error": "User not found"}), 404
     return jsonify(user_schema.dump(user))
-
 
 # Update user info (excluding password)
 @auth_bp.route("/profile", methods=["PUT"])
@@ -153,7 +159,7 @@ def change_password():
     return jsonify({"message": "Password changed successfully"})
 
 
-# Logout (add token to blacklist)
+# Logout (invalidate JWT tokens by returning expired cookies - stateless JWT)
 @auth_bp.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():

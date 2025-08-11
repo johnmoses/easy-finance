@@ -20,6 +20,8 @@ class AccountSchema(ma.SQLAlchemyAutoSchema):
             raise ValidationError("Currency must be 3 characters (e.g., USD)")
 
 class TransactionSchema(ma.SQLAlchemyAutoSchema):
+    account_id = fields.Int(allow_none=True)
+    budget_id = fields.Int(allow_none=True)
     class Meta:
         model = Transaction
         load_instance = True

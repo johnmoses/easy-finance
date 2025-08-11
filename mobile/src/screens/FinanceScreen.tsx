@@ -56,32 +56,17 @@ const FinanceScreen = () => {
 
   const loadAccounts = async () => {
     try {
-      const mockAccounts: Account[] = [
-        {
-          id: '1',
-          name: 'Main Checking',
-          type: 'checking',
-          balance: 5420.75,
-          bank: 'Chase Bank',
-        },
-        {
-          id: '2',
-          name: 'Savings Account',
-          type: 'savings',
-          balance: 12500.00,
-          bank: 'Bank of America',
-        },
-        {
-          id: '3',
-          name: 'Credit Card',
-          type: 'credit',
-          balance: -1250.30,
-          bank: 'Capital One',
-        },
-      ];
-      setAccounts(mockAccounts);
+      const data = await financeAPI.getAccounts();
+      setAccounts(data.map((account: any) => ({
+        id: account.id.toString(),
+        name: account.name,
+        type: account.account_type,
+        balance: account.balance,
+        bank: account.bank || 'Default Bank',
+      })));
     } catch (error) {
       console.error('Error loading accounts:', error);
+      Alert.alert('Error', 'Failed to load accounts');
     }
   };
 
