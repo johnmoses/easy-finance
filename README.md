@@ -37,6 +37,20 @@
 - **Real-time Sync** - Seamless data synchronization across platforms
 - **Modern UI/UX** - Gradient designs and intuitive navigation
 
+### Screenshots
+
+#### Mobile App
+
+![Mobile Screenshot 1](mobile/images/1.png)
+![Mobile Screenshot 2](mobile/images/2.png)
+![Mobile Screenshot 3](mobile/images/3.png)
+
+#### Web Dashboard
+
+![Web Screenshot 1](web/images/1.png)
+![Web Screenshot 2](web/images/2.png)
+![Web Screenshot 3](web/images/3.png)
+
 ## 🏗️ Architecture
 
 ```
@@ -249,6 +263,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Next.js** - Modern React framework
 - **Chroma** - Vector database for AI
 - **OpenAI** - AI model inspiration
+
+### More Screenshots
+
+#### Mobile App
+
+![Mobile Screenshot 14](mobile/images/14.png)
+![Mobile Screenshot 15](mobile/images/15.png)
+![Mobile Screenshot 16](mobile/images/16.png)
+
+#### Web Dashboard
+
+![Web Screenshot 14](web/images/14.png)
+![Web Screenshot 15](web/images/15.png)
+![Web Screenshot 16](web/images/16.png)
 
 ---
 
