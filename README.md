@@ -1,3 +1,5 @@
+<p align="center"><img src="https://placehold.co/1280x320/2d3748/ffffff/png?text=EasyFinance" alt="EasyFinance Banner"></p>
+
 # 💰 Easy Finance - AI-Powered Financial Platform
 
 > A next-generation financial application combining blockchain technology, AI intelligence, and modern web/mobile interfaces for comprehensive wealth management.
@@ -26,6 +28,7 @@
 
 ### 💼 **Comprehensive Finance Management**
 - **Account Management** - Multiple account types and transaction tracking
+- **Transaction Import** - Easily upload bank statements (.xls, .xlsx, .pdf) to automatically populate your transaction history.
 - **Investment Portfolio** - Real-time portfolio analytics and performance metrics
 - **Financial Planning** - Goal setting, budget management, and progress tracking
 - **Wealth Analytics** - Advanced reporting and investment insights
@@ -69,7 +72,7 @@
           ┌───────────────────────┼───────────────────────┐
           │                       │                       │
     ┌─────┴─────┐         ┌───────┴───────┐       ┌───────┴───────┐
-    │PostgreSQL │         │ Chroma Vector │       │ Redis Cache   │
+    │PostgreSQL │         │ Milvus Vector │       │ Redis Cache   │
     │ Database  │         │   Database    │       │ & Sessions    │
     └───────────┘         └───────────────┘       └───────────────┘
                                   │
@@ -152,7 +155,7 @@ JWT_SECRET_KEY=your-jwt-secret
 
 # AI/ML Models
 LLAMA_MODEL_PATH=/path/to/llama/model.gguf
-CHROMA_DB_PATH=./chroma_rag.db
+MILVUS_DB_PATH=./milvus_rag.db
 EMBED_MODEL_NAME=all-MiniLM-L6-v2
 
 # Redis

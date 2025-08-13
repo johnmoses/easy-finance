@@ -5,6 +5,7 @@ from app.finance.schemas import account_schema, accounts_schema, transaction_sch
 from app.planning.models import Budget
 from app.ai.categorizer import auto_categorize_transaction
 from app.extensions import db
+from app.finance.services import process_uploaded_transactions
 
 finance_bp = Blueprint("finance", __name__)
 
@@ -161,3 +162,29 @@ def delete_transaction(transaction_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to delete transaction"}), 500
+
+# ===== TRANSACTION FILE UPLOAD ROUTES =====
+@finance_bp.route("/transactions/upload", methods=["POST"])
+@jwt_required()
+def upload_transactions():
+    user_id = get_jwt_identity()
+    account_id = request.args.get('account_id') # Assuming account_id is passed as a query parameter
+
+    if not account_id:
+        return jsonify({"error": "Account ID is required"}), 400
+
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    if file:
+        try:
+            processed_transactions = process_uploaded_transactions(file.stream, file.filename, user_id, account_id)
+            return jsonify({"message": f"Successfully processed {len(processed_transactions)} transactions.", "transactions": transactions_schema.dump(processed_transactions)}), 200
+        except Exception as e:
+            db.session.rollback() # Rollback any partial changes
+            return jsonify({"error": str(e)}), 500

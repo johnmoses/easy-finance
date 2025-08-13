@@ -1,0 +1,129 @@
+{
+    "info": {
+        "_postman_id": "YOUR_POSTMAN_COLLECTION_ID",
+        "name": "EasyFinance API - Transaction Upload",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_collection_link": "https://www.postman.com/collections/YOUR_POSTMAN_COLLECTION_ID"
+    },
+    "item": [
+        {
+            "name": "Login and Get JWT Token",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"email\": \"your_email@example.com\",\n    \"password\": \"your_password\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:5000/auth/login",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "auth",
+                        "login"
+                    ]
+                },
+                "description": "Use this request to log in and obtain a JWT token. Replace 'your_email@example.com' and 'your_password' with your actual credentials."
+            },
+            "response": []
+        },
+        {
+            "name": "Upload Transactions File",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{jwt_token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "http://localhost:5000/finance/transactions/upload?account_id={{account_id}}",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "finance",
+                        "transactions",
+                        "upload"
+                    ],
+                    "query": [
+                        {
+                            "key": "account_id",
+                            "value": "{{account_id}}",
+                            "description": "The ID of the account to associate transactions with."
+                        }
+                    ]
+                },
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "file",
+                            "type": "file",
+                            "src": "/path/to/your/sample.xlsx",
+                            "description": "Select your .xls, .xlsx, or .pdf bank statement file here."
+                        }
+                    ]
+                },
+                "description": "Uploads a bank statement file (.xls, .xlsx, or .pdf) to generate transactions. Ensure you have a valid JWT token and replace '{{account_id}}' with the target account ID. Update the 'file' field to select your local file."
+            },
+            "response": []
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    ""
+                ]
+            }
+        },
+        {
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// For the Login request, extract the JWT token and set it as a collection variable",
+                    "if (pm.request.name === \"Login and Get JWT Token\") {",
+                    "    var jsonData = pm.response.json();",
+                    "    if (jsonData && jsonData.access_token) {",
+                    "        pm.collectionVariables.set(\"jwt_token\", jsonData.access_token);",
+                    "        console.log(\"JWT Token set: \" + jsonData.access_token);",
+                    "    } else {",
+                    "        console.log(\"JWT Token not found in response.\");",
+                    "    }",
+                    "}"
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "jwt_token",
+            "value": "",
+            "type": "string",
+            "description": "Stores the JWT token obtained from the login request."
+        },
+        {
+            "key": "account_id",
+            "value": "1",
+            "type": "string",
+            "description": "The ID of the account to associate transactions with. Change this to your desired account ID."
+        }
+    ]
+}
