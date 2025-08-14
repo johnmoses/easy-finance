@@ -1,4 +1,4 @@
-<p align="center"><img src="https://placehold.co/1280x320/2d3748/ffffff/png?text=EasyFinance" alt="EasyFinance Banner"></p>
+<p align="center"><img src="brand-easy-finance.png" alt="EasyFinance Banner"></p>
 
 # 💰 Easy Finance - AI-Powered Financial Platform
 

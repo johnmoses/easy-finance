@@ -183,8 +183,13 @@ def upload_transactions():
     
     if file:
         try:
-            processed_transactions = process_uploaded_transactions(file.stream, file.filename, user_id, account_id)
-            return jsonify({"message": f"Successfully processed {len(processed_transactions)} transactions.", "transactions": transactions_schema.dump(processed_transactions)}), 200
+            result = process_uploaded_transactions(file.stream, file.filename, user_id, account_id)
+            message = f"Successfully processed {result['processed_count']} transactions. " \
+                      f"{result['skipped_count']} duplicates were skipped."
+            return jsonify({
+                "message": message,
+                "transactions": transactions_schema.dump(result['saved_transactions'])
+            }), 200
         except Exception as e:
             db.session.rollback() # Rollback any partial changes
             return jsonify({"error": str(e)}), 500
