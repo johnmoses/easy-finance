@@ -1,8 +1,8 @@
-# version: '3.8'
+version: '3.8'
 
 services:
   postgres:
-    image: postgres
+    image: postgres:15-alpine
     restart: always
     expose:
       - "5432"
@@ -17,48 +17,28 @@ services:
       - "-c"
       - "max_connections=1024"
       - "-c"
-      - "shared_buffers=3GB"
+      - "shared_buffers=1GB" # Lowered from 3GB for better compatibility with local dev environments
       - "-c"
       - "max_locks_per_transaction=1024"
+ 
   api:
     platform: linux/amd64
-    # restart: always
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
+    restart: on-failure
     build:
       context: ./api
       dockerfile: Dockerfile
     volumes:
-      - ./api/:/api/
-      - static:/api/api/static
-      - media:/api/api/media
-    ports:
-    - 8000:8000
-    env_file:
-      - ./api/api/.env.dev
-    depends_on:
-      - postgres
-  apix:
-    platform: linux/amd64
-    # restart: always
-    deploy:
-      restart_policy:
-        condition: on-failure
-        max_attempts: 3
-    build:
-      context: ./apix
-      dockerfile: Dockerfile
-    volumes:
-      - ./apix/:/apix
+      - ./api/:/api
+      - static:/api/app/static # Share static volume with nginx
+      - media:/api/app/media   # Share media volume with nginx
     ports:
       - "5001:5001"
     env_file:
-      - ./apix/.env.dev
+      - ./api/.env.dev
     depends_on:
-      - postgres
-      - api
+      postgres:
+        condition: service_healthy
+
   web:
     platform: linux/amd64
     restart: unless-stopped
@@ -73,22 +53,23 @@ services:
       - "3000:3000"
     depends_on:
       - api
-      - apix
+
   nginx:
     image: nginx:1.23-alpine
+    # The build context below is kept, assuming your Dockerfile adds custom configurations.
+    # If not, you can remove the 'build' section.
     build:
       context: ./docker/nginx
       dockerfile: Dockerfile
     restart: always
     volumes:
-      - static:/api/api/static
-      - media:/api/api/media
+      - static:/api/app/static # Mount shared static volume
+      - media:/api/app/media   # Mount shared media volume
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     depends_on:
       - api
-      - apix
       - web
 
 volumes:
