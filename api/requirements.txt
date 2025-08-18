@@ -9,3 +9,6 @@ openpyxl==3.0.10
 pypdf==3.1.0
 xlrd==2.0.1
 lxml
+marshmallow==3.19.0
+requests
+alpaca-trade-api

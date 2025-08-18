@@ -6,15 +6,28 @@ export const financeService = {
   createAccount: (data: any) => api.post('/finance/accounts', data),
   getTransactions: () => api.get('/finance/transactions'),
   createTransaction: (data: any) => api.post('/finance/transactions', data),
-  deleteTransaction: (id: number) => api.delete(`/finance/transactions/${id}`)
+  deleteTransaction: (id: number) => api.delete(`/finance/transactions/${id}`),
+  uploadTransactions: (formData: FormData, accountId: number) => {
+    return api.post(`/finance/transactions/upload?account_id=${accountId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };
 
 // Wealth Services
 export const wealthService = {
   getInvestments: () => api.get('/wealth/investments'),
   createInvestment: (data: any) => api.post('/wealth/investments', data),
-  getSavingsGoals: () => api.get('/wealth/savings-goals'),
-  createSavingsGoal: (data: any) => api.post('/wealth/savings-goals', data)
+  getSavingsGoals: () => api.get('/wealth/goals'),
+  createSavingsGoal: (data: any) => api.post('/wealth/goals', data),
+  getMarketData: (symbol: string) => api.get(`/wealth/market-data/${symbol}`),
+  getInvestmentAdvice: (data: any) => api.post('/wealth/investment-advice', data),
+  rebalancePortfolio: (data: any) => api.post('/wealth/portfolio-rebalance', data),
+  executeTrade: (data: any) => api.post('/wealth/trades', data),
+  getTopInvestments: () => api.get('/wealth/top-investments'),
+  getAlerts: () => api.get('/wealth/alerts'),
 };
 
 // Planning Services
@@ -27,8 +40,16 @@ export const planningService = {
 export const blockchainService = {
   getWallets: () => api.get('/blockchain/wallets'),
   createWallet: (data: any) => api.post('/blockchain/wallets', data),
+  getWalletBalance: (walletId: number) => api.get(`/blockchain/wallets/${walletId}/balance`),
+  getDeFiPositions: () => api.get('/blockchain/defi'),
+  createDeFiPosition: (data: any) => api.post('/blockchain/defi', data),
+  getNFTs: () => api.get('/blockchain/nfts'),
+  addNFT: (data: any) => api.post('/blockchain/nfts', data),
   getBlocks: () => api.get('/blockchain/blocks'),
-  mineBlock: (data: any) => api.post('/blockchain/mine', data)
+  getLatestBlock: () => api.get('/blockchain/latest-block'),
+  mineBlock: (data: any) => api.post('/blockchain/mine', data),
+  getLeaderboard: () => api.get('/blockchain/leaderboard'),
+  getCryptoPrices: (coinIds: string[]) => api.get(`/blockchain/market/prices?ids=${coinIds.join(',')}`)
 };
 
 // Chat Services

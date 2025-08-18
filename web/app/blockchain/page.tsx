@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { blockchainService } from '../../xlib/services';
-import { Shield, Coins, TrendingUp, Plus, Wallet, Zap, Image, BarChart3 } from 'lucide-react';
+import { Shield, Coins, TrendingUp, Plus, Wallet, Zap, Image, BarChart3, Trophy } from 'lucide-react';
 
 interface CryptoWallet {
   id: number;
@@ -42,17 +42,29 @@ interface CryptoHolding {
   current_price: number;
 }
 
+interface LeaderboardEntry {
+  username: string;
+  blocks_mined: number;
+}
+
 export default function Blockchain() {
   const [wallets, setWallets] = useState<CryptoWallet[]>([]);
   const [defiPositions, setDefiPositions] = useState<DeFiPosition[]>([]);
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [cryptoHoldings, setCryptoHoldings] = useState<CryptoHolding[]>([]);
-  const [activeTab, setActiveTab] = useState<'wallets' | 'defi' | 'nft' | 'crypto'>('wallets');
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [prices, setPrices] = useState<any>({});
+  const [activeTab, setActiveTab] = useState<'wallets' | 'defi' | 'nft' | 'crypto' | 'mining'>('wallets');
   const [showWalletForm, setShowWalletForm] = useState(false);
   const [showDefiForm, setShowDefiForm] = useState(false);
   const [showNftForm, setShowNftForm] = useState(false);
   const [showCryptoForm, setShowCryptoForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [latestBlock, setLatestBlock] = useState<any>(null);
+  const [nonce, setNonce] = useState(0);
+  const [mining, setMining] = useState(false);
+  const [message, setMessage] = useState('');
+  const [networkMode, setNetworkMode] = useState('testnet');
 
   useEffect(() => {
     fetchData();
@@ -60,24 +72,26 @@ export default function Blockchain() {
 
   const fetchData = async () => {
     try {
-      const [walletsRes, defiRes, nftsRes] = await Promise.all([
+      const [walletsRes, defiRes, nftsRes, leaderboardRes] = await Promise.all([
         blockchainService.getWallets().catch(() => ({ data: [] })),
-        // Mock DeFi data
-        Promise.resolve({ data: [
-          { id: 1, protocol: 'Uniswap V3', position_type: 'Liquidity Pool', token_pair: 'ETH/USDC', amount_deposited: 5000, current_value: 5250, apy: 12.5, rewards_earned: 125 },
-          { id: 2, protocol: 'Aave', position_type: 'Lending', token_pair: 'USDC', amount_deposited: 10000, current_value: 10200, apy: 8.2, rewards_earned: 200 }
-        ] }),
-        // Mock NFT data
-        Promise.resolve({ data: [
-          { id: 1, name: 'CryptoPunk #1234', contract_address: '0x...', token_id: '1234', purchase_price: 2.5, current_price: 3.2, currency: 'ETH', marketplace: 'OpenSea' },
-          { id: 2, name: 'Bored Ape #5678', contract_address: '0x...', token_id: '5678', purchase_price: 15, current_price: 12.8, currency: 'ETH', marketplace: 'OpenSea' }
-        ] })
+        blockchainService.getDeFiPositions().catch(() => ({ data: [] })),
+        blockchainService.getNFTs().catch(() => ({ data: [] })),
+        blockchainService.getLeaderboard().catch(() => ({ data: [] })),
+        blockchainService.getLatestBlock().catch(() => ({ data: null }))
       ]);
-      
+
       setWallets(walletsRes.data);
       setDefiPositions(defiRes.data);
       setNfts(nftsRes.data);
-      
+      setLeaderboard(leaderboardRes.data);
+      setLatestBlock(await blockchainService.getLatestBlock().then(res => res.data));
+
+      if (walletsRes.data.length > 0) {
+        const coinIds = walletsRes.data.map((wallet: CryptoWallet) => wallet.currency.toLowerCase());
+        const pricesRes = await blockchainService.getCryptoPrices(coinIds);
+        setPrices(pricesRes.data);
+      }
+
       // Mock crypto holdings
       setCryptoHoldings([
         { id: 1, symbol: 'BTC', name: 'Bitcoin', amount: 0.5, purchase_price: 45000, current_price: 52000 },
@@ -103,8 +117,8 @@ export default function Blockchain() {
 
   const createDefiPosition = async (formData: any) => {
     try {
-      const newPosition = { id: Date.now(), rewards_earned: 0, ...formData };
-      setDefiPositions(prev => [...prev, newPosition]);
+      await blockchainService.createDeFiPosition(formData);
+      fetchData();
       setShowDefiForm(false);
     } catch (error) {
       console.error('Failed to create DeFi position:', error);
@@ -113,8 +127,8 @@ export default function Blockchain() {
 
   const createNft = async (formData: any) => {
     try {
-      const newNft = { id: Date.now(), ...formData };
-      setNfts(prev => [...prev, newNft]);
+      await blockchainService.addNFT(formData);
+      fetchData();
       setShowNftForm(false);
     } catch (error) {
       console.error('Failed to add NFT:', error);
@@ -128,6 +142,29 @@ export default function Blockchain() {
       setShowCryptoForm(false);
     } catch (error) {
       console.error('Failed to add crypto holding:', error);
+    }
+  };
+
+  const refreshBalance = async (walletId: number) => {
+    try {
+      const res = await blockchainService.getWalletBalance(walletId);
+      const newBalance = res.data.balance;
+      setWallets(wallets.map(w => w.id === walletId ? { ...w, balance: newBalance } : w));
+    } catch (error) {
+      console.error('Failed to refresh balance:', error);
+    }
+  };
+  const handleMine = async () => {
+    setMining(true);
+    setMessage('');
+    try {
+      const res = await blockchainService.mineBlock({ transactions: [], nonce });
+      setMessage(res.data.message);
+      setMining(false);
+      fetchData();
+    } catch (error: any) {
+      setMessage(error.response?.data?.error || 'Failed to mine block');
+      setMining(false);
     }
   };
 
@@ -165,6 +202,30 @@ export default function Blockchain() {
           <p className="text-gray-600">Manage your digital assets, DeFi positions, and NFT collection</p>
         </div>
 
+        <div className="flex justify-end mb-8">
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-medium text-gray-700">Network Mode:</span>
+            <div className="flex rounded-lg bg-gray-200 p-1">
+              <button
+                onClick={() => setNetworkMode('testnet')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  networkMode === 'testnet' ? 'bg-white text-blue-600 shadow' : 'text-gray-600 hover:bg-gray-300'
+                }`}
+              >
+                Testnet
+              </button>
+              <button
+                onClick={() => setNetworkMode('mainnet')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  networkMode === 'mainnet' ? 'bg-white text-red-600 shadow' : 'text-gray-600 hover:bg-gray-300'
+                }`}
+              >
+                Mainnet
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Summary Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <div className="bg-gradient-to-r from-purple-500 to-indigo-600 p-6 rounded-xl shadow-lg text-white hover:shadow-xl transition-all duration-300">
@@ -179,7 +240,7 @@ export default function Blockchain() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 rounded-xl shadow-lg text-white hover:shadow-xl transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
@@ -192,7 +253,7 @@ export default function Blockchain() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-gradient-to-r from-pink-500 to-rose-600 p-6 rounded-xl shadow-lg text-white hover:shadow-xl transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
@@ -205,7 +266,7 @@ export default function Blockchain() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-gradient-to-r from-orange-500 to-amber-600 p-6 rounded-xl shadow-lg text-white hover:shadow-xl transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
@@ -225,47 +286,53 @@ export default function Blockchain() {
           <div className="flex border-b border-gray-200">
             <button
               onClick={() => setActiveTab('wallets')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                activeTab === 'wallets'
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === 'wallets'
                   ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-              }`}
+                }`}
             >
               <Wallet className="h-5 w-5 inline mr-2" />
               Wallets ({wallets.length})
             </button>
             <button
               onClick={() => setActiveTab('defi')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                activeTab === 'defi'
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === 'defi'
                   ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-              }`}
+                }`}
             >
               <Zap className="h-5 w-5 inline mr-2" />
               DeFi ({defiPositions.length})
             </button>
             <button
               onClick={() => setActiveTab('nft')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                activeTab === 'nft'
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === 'nft'
                   ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-              }`}
+                }`}
             >
               <Image className="h-5 w-5 inline mr-2" />
               NFT ({nfts.length})
             </button>
             <button
               onClick={() => setActiveTab('crypto')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                activeTab === 'crypto'
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === 'crypto'
                   ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-              }`}
+                }`}
             >
               <Coins className="h-5 w-5 inline mr-2" />
               Crypto ({cryptoHoldings.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('mining')}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === 'mining'
+                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-ray-50'
+                }`}
+            >
+              <Trophy className="h-5 w-5 inline mr-2" />
+              Mining
             </button>
           </div>
 
@@ -273,8 +340,9 @@ export default function Blockchain() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold text-slate-800">
                 {activeTab === 'wallets' ? 'Crypto Wallets' :
-                 activeTab === 'defi' ? 'DeFi Positions' :
-                 activeTab === 'nft' ? 'NFT Collection' : 'Crypto Holdings'}
+                  activeTab === 'defi' ? 'DeFi Positions' :
+                    activeTab === 'nft' ? 'NFT Collection' :
+                      activeTab === 'crypto' ? 'Crypto Holdings' : 'Mining & Leaderboard'}
               </h2>
               <div className="space-x-3">
                 {activeTab === 'wallets' && (
@@ -327,7 +395,7 @@ export default function Blockchain() {
                   </div>
                 ) : (
                   wallets.map((wallet) => (
-                    <div key={wallet.id} className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div key={wallet.id} className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors relative">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center space-x-4">
                           <div className="bg-purple-100 p-3 rounded-lg">
@@ -345,11 +413,21 @@ export default function Blockchain() {
                           <p className="font-bold text-xl text-slate-800">
                             {(wallet?.balance || 0).toFixed(8)} {wallet.currency}
                           </p>
+                          {prices[wallet.currency.toLowerCase()] && (
+                            <p className="text-sm text-gray-500">
+                              ${(prices[wallet.currency.toLowerCase()].usd * wallet.balance).toLocaleString()}
+                            </p>
+                          )}
                           <div className="flex items-center text-sm text-green-600">
                             <TrendingUp className="h-4 w-4 mr-1" />
                             <span>+2.5%</span>
                           </div>
                         </div>
+                        <button onClick={() => refreshBalance(wallet.id)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.899 2.802 1 1 0 01-1.998.2A5.002 5.002 0 005.999 7H8a1 1 0 010 2H4a1 1 0 01-1-1V4a1 1 0 011-1zm12 14a1 1 0 01-1-1v-2.101a7.002 7.002 0 01-11.899-2.802 1 1 0 111.998-.2A5.002 5.002 0 0014.001 13H12a1 1 0 110-2h4a1 1 0 011 1v4a1 1 0 01-1 1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   ))
@@ -426,7 +504,7 @@ export default function Blockchain() {
                   })
                 )}
               </div>
-            ) : (
+            ) : activeTab === 'crypto' ? (
               <div className="space-y-4">
                 {cryptoHoldings.length === 0 ? (
                   <div className="text-center py-12">
@@ -465,6 +543,61 @@ export default function Blockchain() {
                   })
                 )}
               </div>
+            ) : (
+              <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="p-6 bg-gray-50 rounded-lg">
+                    <h3 className="text-xl font-semibold text-slate-800 mb-4">Mine New Blocks</h3>
+                    {latestBlock && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Index</label>
+                          <p className="font-mono text-sm p-2 bg-gray-100 rounded">{latestBlock.index}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Previous Hash</label>
+                          <p className="font-mono text-sm p-2 bg-gray-100 rounded">{latestBlock.previous_hash}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
+                          <p className="font-mono text-sm p-2 bg-gray-100 rounded">{latestBlock.difficulty}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Nonce</label>
+                          <input
+                            type="number"
+                            value={nonce}
+                            onChange={(e) => setNonce(parseInt(e.target.value))}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                        </div>
+                        <button
+                          onClick={handleMine}
+                          disabled={mining}
+                          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                        >
+                          {mining ? 'Mining...' : 'Mine Block'}
+                        </button>
+                        {message && <p className="text-sm text-gray-600 mt-4">{message}</p>}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-800 mb-4">Leaderboard</h3>
+                    <div className="space-y-3">
+                      {leaderboard.map((entry, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-4">
+                            <Trophy className={`h-6 w-6 ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-gray-400' : index === 2 ? 'text-yellow-600' : 'text-gray-300'}`} />
+                            <p className="font-medium text-slate-800">{entry.username}</p>
+                          </div>
+                          <p className="font-semibold text-slate-600">{entry.blocks_mined} blocks</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -481,7 +614,8 @@ export default function Blockchain() {
                   name: formData.get('name'),
                   address: formData.get('address'),
                   balance: parseFloat(formData.get('balance') as string) || 0,
-                  currency: formData.get('currency')
+                  currency: formData.get('currency'),
+                  network: networkMode
                 });
               }}>
                 <div className="space-y-6">

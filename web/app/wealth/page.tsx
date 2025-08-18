@@ -28,35 +28,84 @@ interface Alert {
   read: boolean;
 }
 
+interface MarketData {
+  symbol: string;
+  price: number;
+  change: number;
+  change_percent: number;
+  volume: number;
+}
+
+interface InvestmentAdvice {
+  message: string;
+  recommendations: {
+    symbol: string;
+    name: string;
+    action: string;
+  }[];
+}
+
+interface PortfolioRebalance {
+  message: string;
+  trades: {
+    symbol: string;
+    action: string;
+    quantity: number;
+  }[];
+}
+
+interface Trade {
+  message: string;
+  order_id: string;
+}
+
+interface TopInvestment {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+}
+
 export default function Wealth() {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'investments' | 'alerts'>('portfolio');
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'goals' | 'invest' | 'alerts'>('portfolio');
   const [showInvestmentForm, setShowInvestmentForm] = useState(false);
   const [showGoalForm, setShowGoalForm] = useState(false);
+  const [showTradeForm, setShowTradeForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [marketData, setMarketData] = useState<MarketData | null>(null);
+  const [marketDataSymbol, setMarketDataSymbol] = useState('');
+  const [investmentAdvice, setInvestmentAdvice] = useState<InvestmentAdvice | null>(null);
+  const [riskTolerance, setRiskTolerance] = useState('medium');
+  const [financialGoals, setFinancialGoals] = useState('');
+  const [portfolioRebalance, setPortfolioRebalance] = useState<PortfolioRebalance | null>(null);
+  const [targetAllocation, setTargetAllocation] = useState('');
+  const [tradeSymbol, setTradeSymbol] = useState('');
+  const [tradeQuantity, setTradeQuantity] = useState(0);
+  const [tradeSide, setTradeSide] = useState('buy');
+  const [tradingMode, setTradingMode] = useState('paper');
+  const [topInvestments, setTopInvestments] = useState<TopInvestment[]>([]);
+  const [topInvestmentQuantities, setTopInvestmentQuantities] = useState<{ [key: string]: number }>({});
+  const [tradesList, setTradesList] = useState<Trade[]>([]);
 
   useEffect(() => {
     fetchData();
+    fetchTopInvestments();
+    fetchAlerts();
   }, []);
 
   const fetchData = async () => {
     try {
       const [investmentsRes, goalsRes] = await Promise.all([
-        wealthService.getInvestments().catch(() => ({ data: [] })),
-        wealthService.getSavingsGoals().catch(() => ({ data: [] }))
+        wealthService.getInvestments().catch(() => ({ data: { investments: [] } })),
+        wealthService.getSavingsGoals().catch(() => ({ data: { goals: [] } }))
       ]);
       
-      setInvestments(investmentsRes.data);
-      setSavingsGoals(goalsRes.data);
+      setInvestments(Array.isArray(investmentsRes.data.investments) ? investmentsRes.data.investments : []);
+      setSavingsGoals(Array.isArray(goalsRes.data.goals) ? goalsRes.data.goals : []);
       
-      // Mock alerts data for now
-      setAlerts([
-        { id: 1, type: 'goal', message: 'Emergency Fund goal is 80% complete!', timestamp: new Date().toISOString(), read: false },
-        { id: 2, type: 'investment', message: 'AAPL stock gained 5% today', timestamp: new Date().toISOString(), read: false },
-        { id: 3, type: 'milestone', message: 'Portfolio reached $50,000 milestone', timestamp: new Date().toISOString(), read: true }
-      ]);
     } catch (error) {
       console.error('Failed to fetch wealth data:', error);
     } finally {
@@ -84,13 +133,71 @@ export default function Wealth() {
     }
   };
 
+  const fetchMarketData = async () => {
+    if (!marketDataSymbol) return;
+    try {
+      const res = await wealthService.getMarketData(marketDataSymbol);
+      setMarketData(res.data);
+    } catch (error) {
+      console.error('Failed to fetch market data:', error);
+      setMarketData(null);
+    }
+  };
+
+  const fetchInvestmentAdvice = async () => {
+    try {
+      const res = await wealthService.getInvestmentAdvice({ risk_tolerance: riskTolerance, financial_goals: financialGoals });
+      setInvestmentAdvice(res.data);
+    } catch (error) {
+      console.error('Failed to fetch investment advice:', error);
+      setInvestmentAdvice(null);
+    }
+  };
+
+  const rebalancePortfolio = async () => {
+    try {
+      const res = await wealthService.rebalancePortfolio({ target_allocation: targetAllocation });
+      setPortfolioRebalance(res.data);
+    } catch (error) {
+      console.error('Failed to rebalance portfolio:', error);
+      setPortfolioRebalance(null);
+    }
+  };
+
+  const executeTrade = async (symbol: string, quantity: number, side: string, tradingMode: string) => {
+    try {
+      const res = await wealthService.executeTrade({ symbol, quantity, side, trading_mode: tradingMode });
+      setTradesList((prevTrades) => [...prevTrades, res.data]);
+    } catch (error) {
+      console.error('Failed to execute trade:', error);
+    }
+  };
+
+  const fetchTopInvestments = async () => {
+    try {
+      const res = await wealthService.getTopInvestments();
+      setTopInvestments(res.data);
+    } catch (error) {
+      console.error('Failed to fetch top investments:', error);
+    }
+  };
+
+  const fetchAlerts = async () => {
+    try {
+      const res = await wealthService.getAlerts();
+      setAlerts(res.data.alerts);
+    } catch (error) {
+      console.error('Failed to fetch alerts:', error);
+    }
+  };
+
   const calculatePortfolioValue = () => {
-    return investments.reduce((total, inv) => total + (inv.quantity * inv.current_price), 0);
+    return Array.isArray(investments) ? investments.reduce((total, inv) => total + (inv.quantity * inv.current_price), 0) : 0;
   };
 
   const calculatePortfolioGain = () => {
     const currentValue = calculatePortfolioValue();
-    const purchaseValue = investments.reduce((total, inv) => total + (inv.quantity * inv.purchase_price), 0);
+    const purchaseValue = Array.isArray(investments) ? investments.reduce((total, inv) => total + (inv.quantity * inv.purchase_price), 0) : 0;
     return currentValue - purchaseValue;
   };
 
@@ -117,8 +224,8 @@ export default function Wealth() {
 
   const portfolioGain = calculatePortfolioGain();
   const portfolioValue = calculatePortfolioValue();
-  const totalGoalsValue = savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0);
-  const unreadAlerts = alerts.filter(alert => !alert.read).length;
+  const totalGoalsValue = Array.isArray(savingsGoals) ? savingsGoals.reduce((sum, goal) => sum + goal.current_amount, 0) : 0;
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -161,7 +268,7 @@ export default function Wealth() {
               <div>
                 <p className="text-purple-100 text-sm font-medium mb-1">Savings Goals</p>
                 <p className="text-3xl font-bold">${totalGoalsValue.toLocaleString()}</p>
-                <p className="text-purple-200 text-xs">{savingsGoals.length} active goals</p>
+                <p className="text-purple-200 text-xs">{Array.isArray(savingsGoals) ? savingsGoals.length : 0} active goals</p>
               </div>
               <div className="bg-white/20 p-3 rounded-lg">
                 <Target className="h-8 w-8" />
@@ -185,19 +292,30 @@ export default function Wealth() {
               Portfolio
             </button>
             <button
-              onClick={() => setActiveTab('investments')}
+              onClick={() => setActiveTab('goals')}
               className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-                activeTab === 'investments'
+                activeTab === 'goals'
+                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              <Target className="h-5 w-5 inline mr-2" />
+              Goals
+            </button>
+            <button
+              onClick={() => setActiveTab('invest')}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+                activeTab === 'invest'
                   ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
               <Briefcase className="h-5 w-5 inline mr-2" />
-              Investments ({investments.length})
+              Invest
             </button>
             <button
               onClick={() => setActiveTab('alerts')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors relative ${
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
                 activeTab === 'alerts'
                   ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
@@ -205,60 +323,101 @@ export default function Wealth() {
             >
               <Bell className="h-5 w-5 inline mr-2" />
               Alerts
-              {unreadAlerts > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadAlerts}
-                </span>
-              )}
             </button>
           </div>
 
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold text-slate-800">
-                {activeTab === 'portfolio' ? 'Portfolio Overview' : 
-                 activeTab === 'investments' ? 'Your Investments' : 'Notifications & Alerts'}
+                {activeTab === 'portfolio' ? 'Portfolio Overview' : activeTab === 'goals' ? 'Savings Goals' : activeTab === 'invest' ? 'Invest' : 'Alerts'}
               </h2>
               <div className="space-x-3">
-                {activeTab === 'investments' && (
-                  <button
-                    onClick={() => setShowInvestmentForm(true)}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add Investment</span>
-                  </button>
-                )}
-                {activeTab === 'portfolio' && (
-                  <button
-                    onClick={() => setShowGoalForm(true)}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add Goal</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    if (activeTab === 'portfolio') {
+                      setShowInvestmentForm(true);
+                    } else if (activeTab === 'goals') {
+                      setShowGoalForm(true);
+                    } else if (activeTab === 'invest') {
+                      setShowTradeForm(true);
+                    }
+                  }}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add</span>
+                </button>
               </div>
             </div>
 
             {/* Tab Content */}
             {activeTab === 'portfolio' ? (
               <div className="space-y-6">
-                <div className="grid lg:grid-cols-2 gap-8">
-                  {/* Savings Goals */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4">Savings Goals</h3>
-                    {savingsGoals.length === 0 ? (
-                      <div className="text-center py-12">
-                        <Target className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 text-lg">No savings goals found</p>
-                        <p className="text-gray-400">Set your first financial goal!</p>
-                      </div>
-                    ) : (
-                      savingsGoals.map((goal) => {
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Your Investments</h3>
+                  {investments.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 text-lg">No investments found</p>
+                      <p className="text-gray-400">Start building your portfolio!</p>
+                    </div>
+                  ) : (
+                    investments.map((investment) => {
+                      const gain = (investment.current_price - investment.purchase_price) * investment.quantity;
+                      const gainPercent = ((investment.current_price - investment.purchase_price) / investment.purchase_price) * 100;
+                      const investmentAlert = alerts.find(a => a.type === 'investment' && a.message.includes(investment.symbol) && !a.read);
+
+                      return (
+                        <div key={investment.id} className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center space-x-4">
+                              <div className={`p-3 rounded-lg ${gain >= 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                <TrendingUp className="h-6 w-6" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-lg text-slate-800">{investment.name}</h4>
+                                <p className="text-gray-600">{investment.symbol} • {investment.quantity} shares</p>
+                                <p className="text-sm text-gray-500">${investment.current_price}/share</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-xl text-slate-800">
+                                ${(investment.quantity * investment.current_price).toLocaleString()}
+                              </p>
+                              <p className={`text-sm font-medium ${gain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {gain >= 0 ? '+' : ''}${gain.toFixed(2)} ({gainPercent.toFixed(2)}%)
+                              </p>
+                            </div>
+                          </div>
+                          {investmentAlert && (
+                            <div className="mt-4 flex items-center text-sm text-green-600">
+                              <Bell className="h-4 w-4 mr-2" />
+                              {investmentAlert.message}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            ) : activeTab === 'goals' ? (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Savings Goals</h3>
+                  {savingsGoals.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Target className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 text-lg">No savings goals found</p>
+                      <p className="text-gray-400">Set your first financial goal!</p>
+                    </div>
+                  ) : (
+                    <div className="grid lg:grid-cols-2 gap-8">
+                      {savingsGoals.map((goal) => {
                         const progress = (goal.current_amount / goal.target_amount) * 100;
                         const daysLeft = Math.ceil((new Date(goal.target_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                        
+                        const goalAlert = alerts.find(a => a.type === 'goal' && a.message.includes(goal.name) && !a.read);
+
                         return (
                           <div key={goal.id} className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                             <div className="flex justify-between items-start mb-4">
@@ -284,122 +443,301 @@ export default function Wealth() {
                                 style={{ width: `${Math.min(progress, 100)}%` }}
                               ></div>
                             </div>
+                            {goalAlert && (
+                              <div className="mt-4 flex items-center text-sm text-blue-600">
+                                <Bell className="h-4 w-4 mr-2" />
+                                {goalAlert.message}
+                              </div>
+                            )}
                           </div>
                         );
-                      })
-                    )}
-                  </div>
-                  
-                  {/* Portfolio Summary */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4">Portfolio Summary</h3>
-                    <div className="space-y-4">
-                      <div className="p-6 bg-gray-50 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700 font-medium">Total Investments</span>
-                          <span className="font-bold text-xl text-slate-800">{investments.length}</span>
-                        </div>
-                      </div>
-                      <div className="p-6 bg-gray-50 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700 font-medium">Portfolio Value</span>
-                          <span className="font-bold text-xl text-green-600">${portfolioValue.toLocaleString()}</span>
-                        </div>
-                      </div>
-                      <div className="p-6 bg-gray-50 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700 font-medium">Total Gain/Loss</span>
-                          <span className={`font-bold text-xl ${portfolioGain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {portfolioGain >= 0 ? '+' : ''}${portfolioGain.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : activeTab === 'invest' ? (
+              <div className="space-y-8">
+                <div className="flex justify-end">
+                  <div className="flex items-center space-x-4">
+                    <span className="text-sm font-medium text-gray-700">Trading Mode:</span>
+                    <div className="flex rounded-lg bg-gray-200 p-1">
+                      <button
+                        onClick={() => setTradingMode('paper')}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                          tradingMode === 'paper' ? 'bg-white text-blue-600 shadow' : 'text-gray-600 hover:bg-gray-300'
+                        }`}
+                      >
+                        Paper
+                      </button>
+                      <button
+                        onClick={() => setTradingMode('live')}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                          tradingMode === 'live' ? 'bg-white text-red-600 shadow' : 'text-gray-600 hover:bg-gray-300'
+                        }`}
+                      >
+                        Live
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ) : activeTab === 'investments' ? (
-              <div className="space-y-4">
-                {investments.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">No investments found</p>
-                    <p className="text-gray-400">Start building your portfolio!</p>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Investment Advice</h3>
+                  <div className="grid grid-cols-2 gap-8">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Risk Tolerance</label>
+                      <select
+                        value={riskTolerance}
+                        onChange={(e) => setRiskTolerance(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Financial Goals</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., Retirement, House Down Payment"
+                        value={financialGoals}
+                        onChange={(e) => setFinancialGoals(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base"
+                      />
+                    </div>
                   </div>
-                ) : (
-                  investments.map((investment) => {
-                    const gain = (investment.current_price - investment.purchase_price) * investment.quantity;
-                    const gainPercent = ((investment.current_price - investment.purchase_price) / investment.purchase_price) * 100;
-                    
-                    return (
-                      <div key={investment.id} className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center space-x-4">
-                            <div className={`p-3 rounded-lg ${gain >= 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                              <TrendingUp className="h-6 w-6" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-lg text-slate-800">{investment.name}</h4>
-                              <p className="text-gray-600">{investment.symbol} • {investment.quantity} shares</p>
-                              <p className="text-sm text-gray-500">${investment.current_price}/share</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-xl text-slate-800">
-                              ${(investment.quantity * investment.current_price).toLocaleString()}
-                            </p>
-                            <p className={`text-sm font-medium ${gain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {gain >= 0 ? '+' : ''}${gain.toFixed(2)} ({gainPercent.toFixed(2)}%)
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {alerts.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Bell className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">No alerts found</p>
-                    <p className="text-gray-400">You'll see notifications here</p>
+                  <div className="mt-4">
+                    <button
+                      onClick={fetchInvestmentAdvice}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition-all duration-300"
+                    >
+                      Get Advice
+                    </button>
                   </div>
-                ) : (
-                  alerts.map((alert) => (
-                    <div key={alert.id} className={`p-6 rounded-lg border-l-4 ${
-                      alert.type === 'goal' ? 'border-blue-500 bg-blue-50' :
-                      alert.type === 'investment' ? 'border-green-500 bg-green-50' :
-                      'border-purple-500 bg-purple-50'
-                    } ${!alert.read ? 'ring-2 ring-blue-200' : ''}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`p-2 rounded-lg ${
-                            alert.type === 'goal' ? 'bg-blue-100 text-blue-600' :
-                            alert.type === 'investment' ? 'bg-green-100 text-green-600' :
-                            'bg-purple-100 text-purple-600'
-                          }`}>
-                            {alert.type === 'goal' ? <Target className="h-5 w-5" /> :
-                             alert.type === 'investment' ? <TrendingUp className="h-5 w-5" /> :
-                             <Bell className="h-5 w-5" />}
+                  {investmentAdvice && (
+                    <div className="mt-8 p-6 bg-gray-50 rounded-lg">
+                      <h3 className="text-xl font-semibold text-slate-800 mb-4">Investment Advice</h3>
+                      <p className="text-gray-600 mb-4">{investmentAdvice.message}</p>
+                      <div className="space-y-4">
+                        {investmentAdvice.recommendations.map((rec, index) => (
+                          <div key={index} className="p-4 bg-white rounded-lg shadow">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-semibold text-slate-800">{rec.name} ({rec.symbol})</p>
+                                <p className="text-sm text-gray-600">Action: <span className={`font-medium ${rec.action === 'buy' ? 'text-green-600' : 'text-red-600'}`}>{rec.action}</span></p>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-slate-800">{alert.message}</p>
-                            <p className="text-sm text-gray-600">
-                              {new Date(alert.timestamp).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        {!alert.read && (
-                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        )}
+                        ))}
                       </div>
                     </div>
-                  ))
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Portfolio Rebalance</h3>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Target Allocation</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., AAPL: 50%, GOOGL: 50%"
+                      value={targetAllocation}
+                      onChange={(e) => setTargetAllocation(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base"
+                    />
+                  </div>
+                  <button
+                    onClick={rebalancePortfolio}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition-all duration-300"
+                  >
+                    Rebalance Portfolio
+                  </button>
+                  {portfolioRebalance && (
+                    <div className="mt-8 p-6 bg-gray-50 rounded-lg">
+                      <h3 className="text-xl font-semibold text-slate-800 mb-4">Portfolio Rebalance</h3>
+                      <p className="text-gray-600 mb-4">{portfolioRebalance.message}</p>
+                      <div className="space-y-4">
+                        {portfolioRebalance.trades.map((trade, index) => (
+                          <div key={index} className="p-4 bg-white rounded-lg shadow">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-semibold text-slate-800">{trade.symbol}</p>
+                                <p className="text-sm text-gray-600">Action: <span className={`font-medium ${trade.action === 'buy' ? 'text-green-600' : 'text-red-600'}`}>{trade.action}</span></p>
+                                <p className="text-sm text-gray-600">Quantity: {trade.quantity}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div>
+                <div className="grid grid-cols-3 gap-8 mb-8">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Symbol</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., AAPL"
+                      value={tradeSymbol}
+                      onChange={(e) => setTradeSymbol(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                    <input
+                      type="number"
+                      placeholder="e.g., 10"
+                      value={tradeQuantity}
+                      onChange={(e) => setTradeQuantity(parseFloat(e.target.value))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Side</label>
+                    <select
+                      value={tradeSide}
+                      onChange={(e) => setTradeSide(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                    >
+                      <option value="buy">Buy</option>
+                      <option value="sell">Sell</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-4 mb-8">
+                  <button
+                    onClick={() => executeTrade(tradeSymbol, tradeQuantity, tradeSide, tradingMode)}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition-all duration-300"
+                  >
+                    Execute Trade
+                  </button>
+                </div>
+                {marketData && (
+                  <div className="p-6 bg-gray-50 rounded-lg mb-8">
+                    <h3 className="text-xl font-semibold text-slate-800 mb-4">{marketData.symbol} Market Data</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-gray-600">Price</p>
+                        <p className="text-2xl font-bold text-slate-800">${marketData.price.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Change</p>
+                        <p className={`text-2xl font-bold ${marketData.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {marketData.change.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Change %</p>
+                        <p className={`text-2xl font-bold ${marketData.change_percent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {marketData.change_percent.toFixed(2)}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Volume</p>
+                        <p className="text-2xl font-bold text-slate-800">{marketData.volume.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
                 )}
+                <div className="flex items-center space-x-4 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Enter stock symbol (e.g., AAPL) for Market Data"
+                    value={marketDataSymbol}
+                    onChange={(e) => setMarketDataSymbol(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base"
+                  />
+                  <button
+                    onClick={fetchMarketData}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition-all duration-300"
+                  >
+                    Get Market Data
+                  </button>
+                </div>
+                {tradesList.length > 0 && (
+                  <div className="mt-8 p-6 bg-gray-50 rounded-lg mb-8">
+                    <h3 className="text-xl font-semibold text-slate-800 mb-4">Executed Trades</h3>
+                    <div className="space-y-4">
+                      {tradesList.map((executedTrade, index) => (
+                        <div key={index} className="p-4 bg-white rounded-lg shadow">
+                          <p className="text-gray-600 mb-2">{executedTrade.message}</p>
+                          <p className="text-gray-600">Order ID: {executedTrade.order_id}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Investment Opportunities</h3>
+                  {topInvestments.map((investment) => (
+                    <div key={investment.symbol} className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-4">
+                          <div className={`p-3 rounded-lg ${investment.change >= 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            <TrendingUp className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-lg text-slate-800">{investment.name}</h4>
+                            <p className="text-gray-600">{investment.symbol}</p>
+                            <p className="text-sm text-gray-500">${investment.price}/share</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-medium ${investment.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {investment.change >= 0 ? '+' : ''}${investment.change.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex space-x-2 items-center">
+                          <input
+                            type="number"
+                            value={topInvestmentQuantities[investment.symbol] || 1}
+                            onChange={(e) => {
+                              setTopInvestmentQuantities({
+                                ...topInvestmentQuantities,
+                                [investment.symbol]: parseInt(e.target.value, 10),
+                              });
+                            }}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-gray-900 text-base"
+                          />
+                          <button onClick={() => executeTrade(investment.symbol, topInvestmentQuantities[investment.symbol] || 1, 'buy', tradingMode)} className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">Buy</button>
+                          <button onClick={() => executeTrade(investment.symbol, topInvestmentQuantities[investment.symbol] || 1, 'sell', tradingMode)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">Sell</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                </div>
               </div>
-            )}
+            ) : activeTab === 'alerts' ? (
+              <div className="space-y-4">
+                {alerts.map((alert) => (
+                  <div key={alert.id} className={`p-4 rounded-lg ${alert.read ? 'bg-gray-100' : 'bg-blue-100'}`}>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <Bell className="h-5 w-5 mr-3 text-blue-500" />
+                        <div>
+                          <p className={`font-medium ${alert.read ? 'text-gray-600' : 'text-blue-800'}`}>{alert.message}</p>
+                          <p className={`text-sm ${alert.read ? 'text-gray-500' : 'text-blue-600'}`}>{new Date(alert.timestamp).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      {!alert.read && (
+                        <button
+                          onClick={() => {
+                            const newAlerts = alerts.map(a => a.id === alert.id ? { ...a, read: true } : a);
+                            setAlerts(newAlerts);
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Mark as read
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -422,23 +760,23 @@ export default function Wealth() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Investment Name</label>
-                    <input name="name" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="e.g., Apple Inc." />
+                    <input name="name" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="e.g., Apple Inc." />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Symbol</label>
-                    <input name="symbol" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="e.g., AAPL" />
+                    <input name="symbol" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="e.g., AAPL" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
-                    <input name="quantity" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Number of shares" />
+                    <input name="quantity" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="Number of shares" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Price</label>
-                    <input name="purchase_price" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Price per share" />
+                    <input name="purchase_price" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="Price per share" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Current Price</label>
-                    <input name="current_price" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Current market price" />
+                    <input name="current_price" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="Current market price" />
                   </div>
                 </div>
                 <div className="flex justify-end space-x-4 mt-8">
@@ -472,19 +810,19 @@ export default function Wealth() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Goal Name</label>
-                    <input name="name" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Emergency Fund" />
+                    <input name="name" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="e.g., Emergency Fund" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Target Amount</label>
-                    <input name="target_amount" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Goal amount" />
+                    <input name="target_amount" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="Goal amount" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Current Amount</label>
-                    <input name="current_amount" type="number" step="0.01" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Current savings (optional)" />
+                    <input name="current_amount" type="number" step="0.01" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="Current savings (optional)" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Target Date</label>
-                    <input name="target_date" type="date" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                    <input name="target_date" type="date" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900" />
                   </div>
                 </div>
                 <div className="flex justify-end space-x-4 mt-8">
@@ -493,6 +831,52 @@ export default function Wealth() {
                   </button>
                   <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition-all duration-300">
                     Add Goal
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Trade Form Modal */}
+        {showTradeForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl p-8 w-full max-w-md shadow-2xl">
+              <h3 className="text-2xl font-bold mb-6 text-slate-800">Execute Trade</h3>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                executeTrade(
+                  formData.get('symbol') as string,
+                  parseFloat(formData.get('quantity') as string),
+                  formData.get('side') as string,
+                  tradingMode
+                );
+                setShowTradeForm(false);
+              }}>
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Symbol</label>
+                    <input name="symbol" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="e.g., AAPL" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                    <input name="quantity" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="Number of shares" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Side</label>
+                    <select name="side" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900">
+                      <option value="buy">Buy</option>
+                      <option value="sell">Sell</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-4 mt-8">
+                  <button type="button" onClick={() => setShowTradeForm(false)} className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium">
+                    Cancel
+                  </button>
+                  <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition-all duration-300">
+                    Execute Trade
                   </button>
                 </div>
               </form>

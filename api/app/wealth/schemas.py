@@ -1,54 +1,32 @@
-from app.extensions import ma
-from app.wealth.models import Investment, SavingsGoal, Notification, PriceAlert
-from marshmallow import fields, validates, ValidationError
+from marshmallow import Schema, fields, validate
 
-class InvestmentSchema(ma.SQLAlchemyAutoSchema):
-    total_value = fields.Float(dump_only=True)
-    profit_loss = fields.Float(dump_only=True)
-    profit_loss_percentage = fields.Float(dump_only=True)
-    
-    class Meta:
-        model = Investment
-        load_instance = True
-        exclude = ('user_id',)
+class InvestmentSchema(Schema):
+    id = fields.Int(dump_only=True)
+    symbol = fields.Str(required=True, validate=validate.Length(min=1))
+    name = fields.Str(required=True, validate=validate.Length(min=1))
+    quantity = fields.Float(required=True, validate=validate.Range(min=0))
+    purchase_price = fields.Float(required=True, validate=validate.Range(min=0))
+    current_price = fields.Float(validate=validate.Range(min=0))
+    investment_type = fields.Str(validate=validate.OneOf(["stock", "crypto", "bond", "mutual_fund", "etf", "other"]))
+    user_id = fields.Int(dump_only=True)
+    account_id = fields.Int()
 
-class SavingsGoalSchema(ma.SQLAlchemyAutoSchema):
-    progress_percentage = fields.Float(dump_only=True)
-    remaining_amount = fields.Float(dump_only=True)
-    days_remaining = fields.Int(dump_only=True)
-    
-    class Meta:
-        model = SavingsGoal
-        load_instance = True
-        exclude = ('user_id',)
-    
-    @validates('target_amount')
-    def validate_target_amount(self, value):
-        if value <= 0:
-            raise ValidationError("Target amount must be positive")
+class SavingsGoalSchema(Schema):
+    id = fields.Int(dump_only=True)
+    name = fields.Str(required=True, validate=validate.Length(min=1))
+    description = fields.Str()
+    target_amount = fields.Float(required=True, validate=validate.Range(min=0))
+    current_amount = fields.Float(dump_only=True)
+    target_date = fields.Date(format="%Y-%m-%d")
+    priority = fields.Str(validate=validate.OneOf(["low", "medium", "high"]))
+    is_completed = fields.Bool(dump_only=True)
+    user_id = fields.Int(dump_only=True)
 
-class NotificationSchema(ma.SQLAlchemyAutoSchema):
-    class Meta:
-        model = Notification
-        load_instance = True
-        exclude = ('user_id',)
-
-class PriceAlertSchema(ma.SQLAlchemyAutoSchema):
-    class Meta:
-        model = PriceAlert
-        load_instance = True
-        exclude = ('user_id',)
-    
-    @validates('condition')
-    def validate_condition(self, value):
-        if value not in ['above', 'below']:
-            raise ValidationError("Condition must be 'above' or 'below'")
-
-investment_schema = InvestmentSchema()
-investments_schema = InvestmentSchema(many=True)
-savings_goal_schema = SavingsGoalSchema()
-savings_goals_schema = SavingsGoalSchema(many=True)
-notification_schema = NotificationSchema()
-notifications_schema = NotificationSchema(many=True)
-price_alert_schema = PriceAlertSchema()
-price_alerts_schema = PriceAlertSchema(many=True)
+class PriceAlertSchema(Schema):
+    id = fields.Int(dump_only=True)
+    symbol = fields.Str(required=True, validate=validate.Length(min=1))
+    target_price = fields.Float(required=True, validate=validate.Range(min=0))
+    condition = fields.Str(required=True, validate=validate.OneOf(["greater_than", "less_than"]))
+    is_triggered = fields.Bool(dump_only=True)
+    is_active = fields.Bool(dump_only=True)
+    user_id = fields.Int(dump_only=True)

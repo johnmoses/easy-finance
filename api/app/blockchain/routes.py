@@ -1,10 +1,14 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
+from web3 import Web3
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.blockchain.models import CryptoWallet, DeFiPosition, NFTCollection, Block, CryptoTransaction
+from app.auth.models import User
 from app.extensions import db
+from app.blockchain.market_data import get_crypto_prices
 import hashlib
 import json
 from datetime import datetime
+import logging
 
 blockchain_bp = Blueprint("blockchain", __name__)
 
@@ -36,7 +40,7 @@ def create_wallet():
         name=data.get("name"),
         address=data.get("address"),
         currency=data.get("currency"),
-        network=data.get("network", "mainnet"),
+        network=data.get("network", "testnet"),
         wallet_type=data.get("wallet_type", "hot"),
         user_id=get_jwt_identity()
     )
@@ -48,6 +52,36 @@ def create_wallet():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to create wallet"}), 500
+
+
+@blockchain_bp.route("/wallets/<int:wallet_id>/balance", methods=["GET"])
+@jwt_required()
+def get_wallet_balance(wallet_id):
+    user_id = get_jwt_identity()
+    wallet = CryptoWallet.query.filter_by(id=wallet_id, user_id=user_id).first()
+    if not wallet:
+        return jsonify({"error": "Wallet not found"}), 404
+
+    if wallet.network == 'mainnet':
+        rpc_url = current_app.config.get("MAINNET_RPC_URL")
+    else:
+        rpc_url = current_app.config.get("TESTNET_RPC_URL")
+
+    if not rpc_url:
+        return jsonify({"error": f"{wallet.network.capitalize()} RPC URL not configured"}), 500
+
+    try:
+        w3 = Web3(Web3.HTTPProvider(rpc_url))
+        if not w3.is_connected():
+            return jsonify({"error": "Failed to connect to blockchain network"}), 500
+
+        checksum_address = Web3.to_checksum_address(wallet.address)
+        balance_wei = w3.eth.get_balance(checksum_address)
+        balance_ether = w3.from_wei(balance_wei, "ether")
+
+        return jsonify({"balance": float(balance_ether)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ===== DEFI POSITIONS =====
 @blockchain_bp.route("/defi", methods=["GET"])
@@ -155,47 +189,73 @@ def add_nft():
         return jsonify({"error": "Failed to add NFT"}), 500
 
 # ===== BLOCKCHAIN OPERATIONS =====
-@blockchain_bp.route("/blockchain/mine", methods=["POST"])
+@blockchain_bp.route("/latest-block", methods=["GET"])
+@jwt_required()
+def get_latest_block():
+    logging.info("Attempting to get the latest block.")
+    try:
+        last_block = Block.query.order_by(Block.index.desc()).first()
+        if not last_block:
+            logging.warning("No blocks found in the chain.")
+            return jsonify({"error": "No blocks in the chain yet"}), 404
+        
+        logging.info(f"Successfully retrieved latest block with index: {last_block.index}")
+        return jsonify({
+            "index": last_block.index + 1,
+            "previous_hash": last_block.hash,
+            "difficulty": last_block.difficulty,
+            "reward": 10  # Example reward
+        })
+    except Exception as e:
+        logging.error(f"Error getting latest block: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@blockchain_bp.route("/mine", methods=["POST"])
 @jwt_required()
 def mine_block():
     data = request.get_json()
+    if isinstance(data, str):
+        data = json.loads(data)
+
     if not data or not data.get("transactions"):
         return jsonify({"error": "Transaction data required"}), 400
-    
+
     try:
-        # Get the last block
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
         last_block = Block.query.order_by(Block.index.desc()).first()
         previous_hash = last_block.hash if last_block else "0"
         index = last_block.index + 1 if last_block else 0
-        
-        # Create new block
+        difficulty = last_block.difficulty if last_block else 4
+
         block = Block(
             index=index,
             data=json.dumps(data["transactions"]),
             previous_hash=previous_hash,
-            hash="",  # Initialize hash
-            nonce=0   # Explicitly initialize nonce
+            difficulty=difficulty,
+            mined_by=user.username,
+            reward=10
         )
-        
-        # Mine the block (this will set the correct hash)
-        block.mine_block(difficulty=2)  # Reduced difficulty for faster mining
-        
+
+        block.mine_block(difficulty)
+
         db.session.add(block)
         db.session.commit()
-        
+
         return jsonify({
             "message": "Block mined successfully",
             "block_hash": block.hash,
             "index": block.index,
             "nonce": block.nonce,
-            "timestamp": block.timestamp.isoformat()
+            "timestamp": block.timestamp.isoformat(),
+            "reward": block.reward
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to mine block: {str(e)}"}), 500
 
-@blockchain_bp.route("/blockchain/chain", methods=["GET"])
+@blockchain_bp.route("/chain", methods=["GET"])
 @jwt_required()
 def get_blockchain():
     blocks = Block.query.order_by(Block.index.asc()).all()
@@ -209,7 +269,7 @@ def get_blockchain():
     } for block in blocks]
     return jsonify({"chain": chain, "length": len(chain)})
 
-@blockchain_bp.route("/blockchain/validate", methods=["GET"])
+@blockchain_bp.route("/validate", methods=["GET"])
 @jwt_required()
 def validate_blockchain():
     blocks = Block.query.order_by(Block.index.asc()).all()
@@ -227,6 +287,35 @@ def validate_blockchain():
             return jsonify({"valid": False, "error": f"Invalid previous hash at block {current_block.index}"})
     
     return jsonify({"valid": True, "message": "Blockchain is valid"})
+
+@blockchain_bp.route("/leaderboard", methods=["GET"])
+@jwt_required()
+def get_leaderboard():
+    logging.info("Attempting to get the leaderboard.")
+    try:
+        leaderboard = db.session.query(
+            Block.mined_by,
+            db.func.count(Block.mined_by).label("blocks_mined")
+        ).filter(Block.mined_by.isnot(None)).group_by(Block.mined_by).order_by(db.desc("blocks_mined")).all()
+        
+        results = [{
+            "username": row[0],
+            "blocks_mined": row[1]
+        } for row in leaderboard]
+        
+        logging.info("Successfully retrieved the leaderboard.")
+        return jsonify(results)
+    except Exception as e:
+        logging.error(f"Error getting leaderboard: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@blockchain_bp.route("/market/prices", methods=["GET"])
+@jwt_required()
+def get_prices():
+    coin_ids = request.args.getlist("ids")
+    prices = get_crypto_prices(coin_ids)
+    return jsonify(prices)
+
 
 # ===== CRYPTO TRANSACTIONS =====
 @blockchain_bp.route("/transactions", methods=["GET"])

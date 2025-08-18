@@ -8,6 +8,7 @@ interface Account {
   name: string;
   account_type: string;
   balance: number;
+  currency: string;
 }
 
 interface Transaction {
@@ -17,6 +18,7 @@ interface Transaction {
   transaction_type: string;
   category: string;
   timestamp: string;
+  account_id: number;
 }
 
 export default function Finance() {
@@ -25,6 +27,45 @@ export default function Finance() {
   const [activeTab, setActiveTab] = useState<'accounts' | 'transactions'>('accounts');
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedAccountForUpload, setSelectedAccountForUpload] = useState<string>('');
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setSelectedFile(event.target.files[0]);
+    } else {
+      setSelectedFile(null);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      alert('Please select a file to upload.');
+      return;
+    }
+    if (!selectedAccountForUpload) {
+      alert('Please select an account for the transactions.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      await financeService.uploadTransactions(formData, parseInt(selectedAccountForUpload));
+      alert('Transactions uploaded successfully!');
+      setShowUploadForm(false);
+      setSelectedFile(null);
+      setSelectedAccountForUpload('');
+      fetchData(); // Refresh data after upload
+    } catch (error) {
+      console.error('Failed to upload transactions:', error);
+      alert('Failed to upload transactions. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -188,13 +229,22 @@ export default function Finance() {
                     <span>Add Account</span>
                   </button>
                 ) : (
-                  <button
-                    onClick={() => setShowTransactionForm(true)}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add Transaction</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setShowTransactionForm(true)}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Transaction</span>
+                    </button>
+                    <button
+                      onClick={() => setShowUploadForm(true)}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Upload Transactions</span>
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -226,7 +276,7 @@ export default function Finance() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-2xl text-slate-800">${account.balance.toLocaleString()}</p>
+                        <p className="font-bold text-2xl text-slate-800">{new Intl.NumberFormat('en-US', { style: 'currency', currency: account.currency }).format(account.balance)}</p>
                         <p className="text-sm text-gray-500">Available Balance</p>
                       </div>
                     </div>
@@ -242,35 +292,39 @@ export default function Finance() {
                     <p className="text-gray-400">Add your first transaction to get started</p>
                   </div>
                 ) : (
-                  transactions.slice(0, 20).map((transaction) => (
-                    <div key={transaction.id} className="flex justify-between items-center p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div className="flex items-center space-x-4">
-                        <div className={`p-3 rounded-lg ${
-                          transaction.transaction_type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                        }`}>
-                          {transaction.transaction_type === 'income' ? (
-                            <TrendingUp className="h-6 w-6" />
-                          ) : (
-                            <TrendingDown className="h-6 w-6" />
-                          )}
+                  transactions.slice(0, 20).map((transaction) => {
+                    const account = accounts.find(acc => acc.id === transaction.account_id);
+                    const currency = account ? account.currency : 'USD';
+                    return (
+                      <div key={transaction.id} className="flex justify-between items-center p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center space-x-4">
+                          <div className={`p-3 rounded-lg ${
+                            transaction.transaction_type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                          }`}>
+                            {transaction.transaction_type === 'income' ? (
+                              <TrendingUp className="h-6 w-6" />
+                            ) : (
+                              <TrendingDown className="h-6 w-6" />
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg text-slate-800">{transaction.description}</h3>
+                            <p className="text-gray-600">{transaction.category}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-lg text-slate-800">{transaction.description}</h3>
-                          <p className="text-gray-600">{transaction.category}</p>
+                        <div className="text-right">
+                          <p className={`font-bold text-xl ${
+                            transaction.transaction_type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {transaction.transaction_type === 'income' ? '+' : '-'}{new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(transaction.amount)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(transaction.timestamp).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-bold text-xl ${
-                          transaction.transaction_type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {transaction.transaction_type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(transaction.timestamp).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
@@ -288,7 +342,8 @@ export default function Finance() {
                 createAccount({
                   name: formData.get('name'),
                   account_type: formData.get('account_type'),
-                  balance: parseFloat(formData.get('balance') as string)
+                  balance: parseFloat(formData.get('balance') as string),
+                  currency: 'USD'
                 });
               }}>
                 <div className="space-y-6">
@@ -350,7 +405,7 @@ export default function Finance() {
                   amount: amount,
                   transaction_type: formData.get('transaction_type'),
                   category: category.toString().trim(),
-                  account_id: accountId ? parseInt(accountId as string) : null
+                  account_id: parseInt(accountId as string)
                 });
               }}>
                 <div className="space-y-6">
@@ -392,6 +447,57 @@ export default function Finance() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Form Modal */}
+        {showUploadForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl p-8 w-full max-w-md shadow-2xl">
+              <h3 className="text-2xl font-bold mb-6 text-slate-800">Upload Transactions</h3>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                  <input 
+                    type="file" 
+                    accept=".csv, .pdf, .xls, .xlsx" 
+                    onChange={handleFileChange} 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Account for Transactions</label>
+                  <select 
+                    name="account_id" 
+                    required 
+                    value={selectedAccountForUpload}
+                    onChange={(e) => setSelectedAccountForUpload(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Select an account</option>
+                    {accounts.map((account) => (
+                      <option key={account.id} value={account.id}>{account.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {selectedFile && (
+                  <p className="text-sm text-gray-600">Selected file: {selectedFile.name}</p>
+                )}
+              </div>
+              <div className="flex justify-end space-x-4 mt-8">
+                <button type="button" onClick={() => { setShowUploadForm(false); setSelectedFile(null); }} className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium">
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleFileUpload} 
+                  disabled={!selectedFile || loading}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Uploading...' : 'Upload'}
+                </button>
+              </div>
             </div>
           </div>
         )}

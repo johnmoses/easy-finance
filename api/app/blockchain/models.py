@@ -59,6 +59,9 @@ class Block(db.Model):
     previous_hash = db.Column(db.String(64), nullable=False)
     hash = db.Column(db.String(64), nullable=False)
     nonce = db.Column(db.Integer, default=0)
+    difficulty = db.Column(db.Integer, default=4)
+    mined_by = db.Column(db.String(100), nullable=True)
+    reward = db.Column(db.Float, default=0.0)
     
     def calculate_hash(self):
         block_string = f"{self.index}{self.timestamp}{self.data}{self.previous_hash}{self.nonce}"

@@ -1,7 +1,9 @@
 from app import create_app, db, socketio
 import logging
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # Configure root logger
 logging.basicConfig(

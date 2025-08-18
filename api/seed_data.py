@@ -18,7 +18,7 @@ from app.auth.models import User
 from app.finance.models import Account, Transaction
 from app.planning.models import Budget
 from app.wealth.models import Investment, SavingsGoal, Notification, PriceAlert
-from app.blockchain.models import CryptoWallet, DeFiPosition, NFTCollection, CryptoTransaction
+from app.blockchain.models import CryptoWallet, DeFiPosition, NFTCollection, CryptoTransaction, Block
 from app.chat.models import ChatRoom, ChatMessage, ChatParticipant
 
 def create_users():
@@ -472,6 +472,24 @@ def create_chat_rooms(users):
     print(f"✅ Created {len(rooms)} chat rooms with {len(messages)} messages")
     return rooms, messages
 
+def create_genesis_block():
+    """Create the first block in the chain"""
+    import json
+    genesis_block = Block(
+        index=0,
+        data=json.dumps([{"message": "Genesis Block"}]),
+        previous_hash="0",
+        hash="",
+        nonce=0,
+        difficulty=4,
+        mined_by="system",
+        reward=0
+    )
+    genesis_block.hash = genesis_block.calculate_hash()
+    db.session.add(genesis_block)
+    db.session.commit()
+    print("✅ Created genesis block")
+
 def main():
     """Main function to populate database with seed data"""
     app = create_app()
@@ -487,6 +505,7 @@ def main():
         db.create_all()
         
         # Create seed data
+        create_genesis_block()
         users = create_users()
         accounts = create_accounts(users)
         transactions = create_transactions(users, accounts)

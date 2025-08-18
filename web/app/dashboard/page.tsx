@@ -27,7 +27,7 @@ export default function Dashboard() {
         const results = await Promise.allSettled([
           api.get('/finance/accounts'),
           api.get('/finance/transactions'),
-          api.get('/wealth/savings-goals')
+          api.get('/wealth/goals')
         ]);
 
         const accounts = results[0].status === 'fulfilled' ? results[0].value.data : [];

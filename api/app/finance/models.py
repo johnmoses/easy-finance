@@ -21,7 +21,7 @@ class Transaction(db.Model):
     category = db.Column(db.String(80), nullable=False)
     description = db.Column(db.String(255), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=True)
+    account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False)
     budget_id = db.Column(db.Integer, db.ForeignKey("budgets.id"), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
