@@ -1,10 +1,10 @@
 # Byte-compiled / optimized / DLL files
 .pth
 
-api/.env
-api/.env.dev
-api/.env.prod
-api/.env.test
+# api/.env
+# api/.env.dev
+# api/.env.prod
+# api/.env.test
 
 __pycache__/
 *.py[cod]
@@ -89,10 +89,10 @@ celerybeat-schedule
 *.sage.py
 
 # Environments
-.env
-.env.prod
-.env.dev
-.venv
+# .env
+# .env.prod
+# .env.dev
+# .venv
 
 # Spyder project settings
 .spyderproject
