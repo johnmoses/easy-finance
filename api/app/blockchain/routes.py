@@ -1,8 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from web3 import Web3
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.blockchain.models import CryptoWallet, DeFiPosition, NFTCollection, Block, CryptoTransaction
-from app.auth.models import User
+from app.blockchain.models import CryptoWallet, DeFiPosition, NFTCollection, CryptoTransaction
 from app.extensions import db
 from app.blockchain.market_data import get_crypto_prices
 import hashlib
@@ -78,6 +77,10 @@ def get_wallet_balance(wallet_id):
         checksum_address = Web3.to_checksum_address(wallet.address)
         balance_wei = w3.eth.get_balance(checksum_address)
         balance_ether = w3.from_wei(balance_wei, "ether")
+
+        # Save the updated balance to the database
+        wallet.balance = balance_ether
+        db.session.commit()
 
         return jsonify({"balance": float(balance_ether)})
     except Exception as e:
@@ -188,126 +191,7 @@ def add_nft():
         db.session.rollback()
         return jsonify({"error": "Failed to add NFT"}), 500
 
-# ===== BLOCKCHAIN OPERATIONS =====
-@blockchain_bp.route("/latest-block", methods=["GET"])
-@jwt_required()
-def get_latest_block():
-    logging.info("Attempting to get the latest block.")
-    try:
-        last_block = Block.query.order_by(Block.index.desc()).first()
-        if not last_block:
-            logging.warning("No blocks found in the chain.")
-            return jsonify({"error": "No blocks in the chain yet"}), 404
-        
-        logging.info(f"Successfully retrieved latest block with index: {last_block.index}")
-        return jsonify({
-            "index": last_block.index + 1,
-            "previous_hash": last_block.hash,
-            "difficulty": last_block.difficulty,
-            "reward": 10  # Example reward
-        })
-    except Exception as e:
-        logging.error(f"Error getting latest block: {e}")
-        return jsonify({"error": "Internal server error"}), 500
 
-@blockchain_bp.route("/mine", methods=["POST"])
-@jwt_required()
-def mine_block():
-    data = request.get_json()
-    if isinstance(data, str):
-        data = json.loads(data)
-
-    if not data or not data.get("transactions"):
-        return jsonify({"error": "Transaction data required"}), 400
-
-    try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        last_block = Block.query.order_by(Block.index.desc()).first()
-        previous_hash = last_block.hash if last_block else "0"
-        index = last_block.index + 1 if last_block else 0
-        difficulty = last_block.difficulty if last_block else 4
-
-        block = Block(
-            index=index,
-            data=json.dumps(data["transactions"]),
-            previous_hash=previous_hash,
-            difficulty=difficulty,
-            mined_by=user.username,
-            reward=10
-        )
-
-        block.mine_block(difficulty)
-
-        db.session.add(block)
-        db.session.commit()
-
-        return jsonify({
-            "message": "Block mined successfully",
-            "block_hash": block.hash,
-            "index": block.index,
-            "nonce": block.nonce,
-            "timestamp": block.timestamp.isoformat(),
-            "reward": block.reward
-        }), 201
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to mine block: {str(e)}"}), 500
-
-@blockchain_bp.route("/chain", methods=["GET"])
-@jwt_required()
-def get_blockchain():
-    blocks = Block.query.order_by(Block.index.asc()).all()
-    chain = [{
-        "index": block.index,
-        "timestamp": block.timestamp.isoformat(),
-        "data": json.loads(block.data),
-        "hash": block.hash,
-        "previous_hash": block.previous_hash,
-        "nonce": block.nonce
-    } for block in blocks]
-    return jsonify({"chain": chain, "length": len(chain)})
-
-@blockchain_bp.route("/validate", methods=["GET"])
-@jwt_required()
-def validate_blockchain():
-    blocks = Block.query.order_by(Block.index.asc()).all()
-    
-    for i in range(1, len(blocks)):
-        current_block = blocks[i]
-        previous_block = blocks[i-1]
-        
-        # Check if current block's hash is valid
-        if current_block.hash != current_block.calculate_hash():
-            return jsonify({"valid": False, "error": f"Invalid hash at block {current_block.index}"})
-        
-        # Check if current block points to previous block
-        if current_block.previous_hash != previous_block.hash:
-            return jsonify({"valid": False, "error": f"Invalid previous hash at block {current_block.index}"})
-    
-    return jsonify({"valid": True, "message": "Blockchain is valid"})
-
-@blockchain_bp.route("/leaderboard", methods=["GET"])
-@jwt_required()
-def get_leaderboard():
-    logging.info("Attempting to get the leaderboard.")
-    try:
-        leaderboard = db.session.query(
-            Block.mined_by,
-            db.func.count(Block.mined_by).label("blocks_mined")
-        ).filter(Block.mined_by.isnot(None)).group_by(Block.mined_by).order_by(db.desc("blocks_mined")).all()
-        
-        results = [{
-            "username": row[0],
-            "blocks_mined": row[1]
-        } for row in leaderboard]
-        
-        logging.info("Successfully retrieved the leaderboard.")
-        return jsonify(results)
-    except Exception as e:
-        logging.error(f"Error getting leaderboard: {e}")
-        return jsonify({"error": "Internal server error"}), 500
 
 @blockchain_bp.route("/market/prices", methods=["GET"])
 @jwt_required()
@@ -375,11 +259,31 @@ def create_crypto_transaction():
 @jwt_required()
 def blockchain_portfolio_summary():
     user_id = get_jwt_identity()
-    
-    # Crypto wallets total
+
+    # A simple mapping from currency symbol to CoinGecko API ID
+    # In a real app, this might come from a database table
+    SYMBOL_TO_ID_MAP = {
+        "BTC": "bitcoin",
+        "ETH": "ethereum",
+        "USDC": "usd-coin",
+        # Add other common currencies here
+    }
+
     wallets = CryptoWallet.query.filter_by(user_id=user_id, is_active=True).all()
-    total_crypto_value = sum(w.balance for w in wallets)
     
+    # Get prices for all wallet currencies
+    coin_ids_to_fetch = [SYMBOL_TO_ID_MAP[w.currency] for w in wallets if w.currency in SYMBOL_TO_ID_MAP]
+    
+    total_crypto_value = 0.0
+    if coin_ids_to_fetch:
+        prices = get_crypto_prices(list(set(coin_ids_to_fetch)))
+        
+        # Calculate total value
+        for w in wallets:
+            coin_id = SYMBOL_TO_ID_MAP.get(w.currency)
+            if coin_id and coin_id in prices and 'usd' in prices[coin_id]:
+                total_crypto_value += w.balance * prices[coin_id]['usd']
+
     # DeFi positions total
     defi_positions = DeFiPosition.query.filter_by(user_id=user_id, is_active=True).all()
     total_defi_value = sum(pos.current_value for pos in defi_positions)

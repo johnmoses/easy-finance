@@ -1,5 +1,7 @@
 from app.extensions import db
 from datetime import datetime
+from sqlalchemy import event
+from app.planning.models import Budget
 
 class Account(db.Model):
     __tablename__ = "accounts"
@@ -26,3 +28,35 @@ class Transaction(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+@event.listens_for(Transaction, 'after_insert')
+def after_transaction_insert(mapper, connection, target):
+    if target.account_id:
+        account = Account.query.get(target.account_id)
+        if account:
+            if target.transaction_type == 'expense':
+                account.balance -= target.amount
+            elif target.transaction_type == 'income':
+                account.balance += target.amount
+
+    if target.budget_id and target.transaction_type == 'expense':
+        budget = Budget.query.get(target.budget_id)
+        if budget:
+            budget.spent += target.amount
+    db.session.commit()
+
+@event.listens_for(Transaction, 'after_delete')
+def after_transaction_delete(mapper, connection, target):
+    if target.account_id:
+        account = Account.query.get(target.account_id)
+        if account:
+            if target.transaction_type == 'expense':
+                account.balance += target.amount
+            elif target.transaction_type == 'income':
+                account.balance -= target.amount
+
+    if target.budget_id and target.transaction_type == 'expense':
+        budget = Budget.query.get(target.budget_id)
+        if budget:
+            budget.spent -= target.amount
+    db.session.commit()

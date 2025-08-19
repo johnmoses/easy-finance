@@ -14,6 +14,8 @@ export const financeService = {
       },
     });
   },
+  getBudgets: () => api.get('/planning/budgets'),
+  createBudget: (data: any) => api.post('/planning/budgets', data),
 };
 
 // Wealth Services
@@ -30,11 +32,6 @@ export const wealthService = {
   getAlerts: () => api.get('/wealth/alerts'),
 };
 
-// Planning Services
-export const planningService = {
-  getBudgets: () => api.get('/planning/budgets'),
-  createBudget: (data: any) => api.post('/planning/budgets', data)
-};
 
 // Blockchain Services
 export const blockchainService = {

@@ -2,10 +2,14 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.finance.models import Account, Transaction
 from app.finance.schemas import account_schema, accounts_schema, transaction_schema, transactions_schema
-from app.planning.models import Budget
+from app.finance.budget_models import Budget
+from app.finance.budget_schemas import budget_schema, budgets_schema
 from app.ai.categorizer import auto_categorize_transaction
 from app.extensions import db
 from app.finance.services import process_uploaded_transactions
+from sqlalchemy import func, extract
+from datetime import datetime, timedelta
+from app.wealth.models import Investment
 
 finance_bp = Blueprint("finance", __name__)
 
@@ -55,11 +59,18 @@ def update_account(account_id):
         return jsonify(errors), 400
     
     try:
-        for key, value in data.items():
-            if hasattr(account, key) and key != 'user_id':
-                setattr(account, key, value)
+        # Load data with partial=True to allow partial updates
+        updated_account_data = account_schema.load(data, partial=True)
+        
+        # Update account attributes from the loaded data
+        for key, value in updated_account_data.items():
+            setattr(account, key, value)
+            
         db.session.commit()
         return jsonify(account_schema.dump(account))
+    except ValidationError as err:
+        db.session.rollback()
+        return jsonify(err.messages), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to update account"}), 500
@@ -98,20 +109,6 @@ def create_transaction():
         transaction = transaction_schema.load(data)
         transaction.user_id = user_id  # Set user_id after loading
         db.session.add(transaction)
-        
-        # Update account balance
-        if transaction.account_id:
-            account = Account.query.get(transaction.account_id)
-            if transaction.transaction_type == 'expense':
-                account.balance -= transaction.amount
-            elif transaction.transaction_type == 'income':
-                account.balance += transaction.amount
-        
-        # Update budget spent amount if budget_id provided
-        if transaction.budget_id and transaction.transaction_type == 'expense':
-            budget = Budget.query.get(transaction.budget_id)
-            budget.spent += transaction.amount
-        
         db.session.commit()
         return jsonify(transaction_schema.dump(transaction)), 201
     except Exception as e:
@@ -143,25 +140,90 @@ def delete_transaction(transaction_id):
         return jsonify({"error": "Transaction not found"}), 404
     
     try:
-        # Update account balance
-        if transaction.account_id:
-            account = Account.query.get(transaction.account_id)
-            if transaction.transaction_type == 'expense':
-                account.balance += transaction.amount  # Reverse the expense
-            elif transaction.transaction_type == 'income':
-                account.balance -= transaction.amount  # Reverse the income
-        
-        # Update budget spent amount
-        if transaction.budget_id and transaction.transaction_type == 'expense':
-            budget = Budget.query.get(transaction.budget_id)
-            budget.spent -= transaction.amount
-        
         db.session.delete(transaction)
         db.session.commit()
         return jsonify({"message": "Transaction deleted successfully"})
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to delete transaction"}), 500
+
+# ===== BUDGETS ROUTES =====
+@finance_bp.route("/budgets", methods=["GET"])
+@jwt_required()
+def get_budgets():
+    user_id = get_jwt_identity()
+    budgets = Budget.query.filter_by(user_id=user_id).all()
+    return jsonify(budgets_schema.dump(budgets))
+
+@finance_bp.route("/budgets", methods=["POST"])
+@jwt_required()
+def create_budget():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No input data provided"}), 400
+    
+    errors = budget_schema.validate(data)
+    if errors:
+        return jsonify(errors), 400
+    
+    try:
+        budget = budget_schema.load(data)
+        budget.user_id = get_jwt_identity()  # Set user_id after loading
+        db.session.add(budget)
+        db.session.commit()
+        return jsonify(budget_schema.dump(budget)), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to create budget"}), 500
+
+@finance_bp.route("/budgets/<int:budget_id>", methods=["PUT"])
+@jwt_required()
+def update_budget(budget_id):
+    user_id = get_jwt_identity()
+    budget = Budget.query.filter_by(id=budget_id, user_id=user_id).first()
+    if not budget:
+        return jsonify({"error": "Budget not found"}), 404
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No input data provided"}), 400
+    
+    errors = budget_schema.validate(data, partial=True)
+    if errors:
+        return jsonify(errors), 400
+    
+    try:
+        # Load data with partial=True to allow partial updates
+        updated_budget_data = budget_schema.load(data, partial=True)
+        
+        # Update budget attributes from the loaded data
+        for key, value in updated_budget_data.items():
+            setattr(budget, key, value)
+            
+        db.session.commit()
+        return jsonify(budget_schema.dump(budget))
+    except ValidationError as err:
+        db.session.rollback()
+        return jsonify(err.messages), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to update budget"}), 500
+
+@finance_bp.route("/budgets/<int:budget_id>", methods=["DELETE"])
+@jwt_required()
+def delete_budget(budget_id):
+    user_id = get_jwt_identity()
+    budget = Budget.query.filter_by(id=budget_id, user_id=user_id).first()
+    if not budget:
+        return jsonify({"error": "Budget not found"}), 404
+    
+    try:
+        db.session.delete(budget)
+        db.session.commit()
+        return jsonify({"message": "Budget deleted successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete budget"}), 500
 
 # ===== TRANSACTION FILE UPLOAD ROUTES =====
 @finance_bp.route("/transactions/upload", methods=["POST"])
@@ -184,8 +246,7 @@ def upload_transactions():
     if file:
         try:
             result = process_uploaded_transactions(file.stream, file.filename, user_id, account_id)
-            message = f"Successfully processed {result['processed_count']} transactions. " \
-                      f"{result['skipped_count']} duplicates were skipped."
+            message = f"Successfully processed {result['processed_count']} transactions. "                       f"{result['skipped_count']} duplicates were skipped."
             return jsonify({
                 "message": message,
                 "transactions": transactions_schema.dump(result['saved_transactions'])
@@ -193,3 +254,112 @@ def upload_transactions():
         except Exception as e:
             db.session.rollback() # Rollback any partial changes
             return jsonify({"error": str(e)}), 500
+
+# ===== ANALYTICS ROUTES =====
+@finance_bp.route("/analytics/spending-by-category", methods=["GET"])
+@jwt_required()
+def spending_by_category():
+    user_id = get_jwt_identity()
+    results = db.session.query(
+        Transaction.category,
+        func.sum(Transaction.amount).label('total')
+    ).filter_by(
+        user_id=user_id,
+        transaction_type='expense'
+    ).group_by(Transaction.category).all()
+    
+    return jsonify([{
+        "category": result.category,
+        "total": result.total
+    } for result in results])
+
+@finance_bp.route("/analytics/monthly-trends", methods=["GET"])
+@jwt_required()
+def monthly_trends():
+    user_id = get_jwt_identity()
+    
+    # Get last 6 months of data
+    six_months_ago = datetime.now() - timedelta(days=180)
+    
+    income = db.session.query(
+        extract('month', Transaction.timestamp).label('month'),
+        func.sum(Transaction.amount).label('total')
+    ).filter(
+        Transaction.user_id == user_id,
+        Transaction.transaction_type == 'income',
+        Transaction.timestamp >= six_months_ago
+    ).group_by(extract('month', Transaction.timestamp)).all()
+    
+    expenses = db.session.query(
+        extract('month', Transaction.timestamp).label('month'),
+        func.sum(Transaction.amount).label('total')
+    ).filter(
+        Transaction.user_id == user_id,
+        Transaction.transaction_type == 'expense',
+        Transaction.timestamp >= six_months_ago
+    ).group_by(extract('month', Transaction.timestamp)).all()
+    
+    return jsonify({
+        "income": [{"month": int(r.month), "total": r.total} for r in income],
+        "expenses": [{"month": int(r.month), "total": r.total} for r in expenses]
+    })
+
+@finance_bp.route("/analytics/budget-performance", methods=["GET"])
+@jwt_required()
+def budget_performance():
+    user_id = get_jwt_identity()
+    budgets = Budget.query.filter_by(user_id=user_id).all()
+    
+    results = [{
+        "name": budget.name,
+        "limit": budget.limit,
+        "spent": budget.spent,
+        "remaining": budget.remaining,
+        "percentage_used": budget.percentage_used,
+        "status": "over" if budget.spent > budget.limit else "on_track"
+    } for budget in budgets]
+    
+    return jsonify(results)
+
+@finance_bp.route("/analytics/financial-summary", methods=["GET"])
+@jwt_required()
+def financial_summary():
+    user_id = get_jwt_identity()
+    
+    # Total income/expenses this month
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    
+    monthly_income = db.session.query(func.sum(Transaction.amount)).filter(
+        Transaction.user_id == user_id,
+        Transaction.transaction_type == 'income',
+        extract('month', Transaction.timestamp) == current_month,
+        extract('year', Transaction.timestamp) == current_year
+    ).scalar() or 0
+    
+    monthly_expenses = db.session.query(func.sum(Transaction.amount)).filter(
+        Transaction.user_id == user_id,
+        Transaction.transaction_type == 'expense',
+        extract('month', Transaction.timestamp) == current_month,
+        extract('year', Transaction.timestamp) == current_year
+    ).scalar() or 0
+    
+    # Investment portfolio value
+    investments = Investment.query.filter_by(user_id=user_id).all()
+    portfolio_value = sum(inv.total_value for inv in investments)
+    
+    # Budget summary
+    budgets = Budget.query.filter_by(user_id=user_id).all()
+    total_budget_limit = sum(b.limit for b in budgets)
+    total_budget_spent = sum(b.spent for b in budgets)
+    
+    return jsonify({
+        "monthly_income": monthly_income,
+        "monthly_expenses": monthly_expenses,
+        "net_income": monthly_income - monthly_expenses,
+        "portfolio_value": portfolio_value,
+        "total_budgets": len(budgets),
+        "total_budget_limit": total_budget_limit,
+        "total_budget_spent": total_budget_spent,
+        "budget_utilization": (total_budget_spent / total_budget_limit * 100) if total_budget_limit > 0 else 0
+    })

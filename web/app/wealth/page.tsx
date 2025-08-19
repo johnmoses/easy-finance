@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { wealthService } from '../../xlib/services';
-import { TrendingUp, Target, PieChart, Plus, Bell, Briefcase, DollarSign, BarChart3 } from 'lucide-react';
+import { TrendingUp, Target, PieChart, Plus, Bell, Briefcase, DollarSign, BarChart3, Calendar } from 'lucide-react';
 
 interface Investment {
   id: number;
@@ -12,12 +12,13 @@ interface Investment {
   current_price: number;
 }
 
-interface SavingsGoal {
+interface Goal {
   id: number;
   name: string;
+  description: string;
   target_amount: number;
   current_amount: number;
-  target_date: string;
+  deadline: string;
 }
 
 interface Alert {
@@ -68,7 +69,7 @@ interface TopInvestment {
 
 export default function Wealth() {
   const [investments, setInvestments] = useState<Investment[]>([]);
-  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<Goal[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [activeTab, setActiveTab] = useState<'portfolio' | 'goals' | 'invest' | 'alerts'>('portfolio');
   const [showInvestmentForm, setShowInvestmentForm] = useState(false);
@@ -123,7 +124,7 @@ export default function Wealth() {
     }
   };
 
-  const createSavingsGoal = async (formData: any) => {
+  const createGoal = async (formData: any) => {
     try {
       await wealthService.createSavingsGoal(formData);
       fetchData();
@@ -329,7 +330,7 @@ export default function Wealth() {
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold text-slate-800">
-                {activeTab === 'portfolio' ? 'Portfolio Overview' : activeTab === 'goals' ? 'Savings Goals' : activeTab === 'invest' ? 'Invest' : 'Alerts'}
+                {activeTab === 'portfolio' ? 'Portfolio Overview' : activeTab === 'goals' ? 'Financial Goals' : activeTab === 'invest' ? 'Invest' : 'Alerts'}
               </h2>
               <div className="space-x-3">
                 <button
@@ -402,59 +403,51 @@ export default function Wealth() {
                 </div>
               </div>
             ) : activeTab === 'goals' ? (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Savings Goals</h3>
-                  {savingsGoals.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Target className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 text-lg">No savings goals found</p>
-                      <p className="text-gray-400">Set your first financial goal!</p>
-                    </div>
-                  ) : (
-                    <div className="grid lg:grid-cols-2 gap-8">
-                      {savingsGoals.map((goal) => {
-                        const progress = (goal.current_amount / goal.target_amount) * 100;
-                        const daysLeft = Math.ceil((new Date(goal.target_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                        const goalAlert = alerts.find(a => a.type === 'goal' && a.message.includes(goal.name) && !a.read);
-
-                        return (
-                          <div key={goal.id} className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                            <div className="flex justify-between items-start mb-4">
-                              <div>
-                                <h4 className="font-semibold text-lg text-slate-800">{goal.name}</h4>
-                                <p className="text-gray-600">
-                                  Target: ${goal.target_amount.toLocaleString()}
-                                </p>
-                                <p className={`text-sm ${daysLeft > 0 ? 'text-gray-600' : 'text-red-600'}`}>
-                                  {daysLeft > 0 ? `${daysLeft} days left` : 'Overdue'}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-xl text-slate-800">
-                                  ${goal.current_amount.toLocaleString()}
-                                </p>
-                                <p className="text-sm text-gray-600">{progress.toFixed(1)}%</p>
-                              </div>
+              <div className="space-y-4">
+                {savingsGoals.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Target className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg">No goals found</p>
+                    <p className="text-gray-400">Set your first financial goal to get started</p>
+                  </div>
+                ) : (
+                  savingsGoals.map((goal) => {
+                    const progress = (goal.current_amount / goal.target_amount) * 100;
+                    const daysLeft = Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    return (
+                      <div key={goal.id} className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center space-x-4">
+                            <div className="bg-blue-100 p-3 rounded-lg">
+                              <Target className="h-6 w-6 text-blue-600" />
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3">
-                              <div
-                                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-300"
-                                style={{ width: `${Math.min(progress, 100)}%` }}
-                              ></div>
+                            <div>
+                              <h4 className="font-semibold text-lg text-slate-800">{goal.name}</h4>
+                              <p className="text-gray-600">{goal.description}</p>
+                              <p className={`text-sm ${daysLeft > 0 ? 'text-gray-500' : 'text-red-600'}`}>
+                                {daysLeft > 0 ? `${daysLeft} days left` : 'Overdue'}
+                              </p>
                             </div>
-                            {goalAlert && (
-                              <div className="mt-4 flex items-center text-sm text-blue-600">
-                                <Bell className="h-4 w-4 mr-2" />
-                                {goalAlert.message}
-                              </div>
-                            )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                          <div className="text-right">
+                            <p className="font-bold text-xl text-slate-800">
+                              ${goal.current_amount.toLocaleString()}
+                            </p>
+                            <p className="text-sm text-gray-600">of ${goal.target_amount.toLocaleString()}</p>
+                            <p className="text-sm text-blue-600 font-medium">{progress.toFixed(1)}%</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             ) : activeTab === 'invest' ? (
               <div className="space-y-8">
@@ -796,33 +789,33 @@ export default function Wealth() {
         {showGoalForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl p-8 w-full max-w-md shadow-2xl">
-              <h3 className="text-2xl font-bold mb-6 text-slate-800">Add New Savings Goal</h3>
+              <h3 className="text-2xl font-bold mb-6 text-slate-800">Create New Goal</h3>
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target as HTMLFormElement);
-                createSavingsGoal({
+                createGoal({
                   name: formData.get('name'),
+                  description: formData.get('description'),
                   target_amount: parseFloat(formData.get('target_amount') as string),
-                  current_amount: parseFloat(formData.get('current_amount') as string) || 0,
-                  target_date: formData.get('target_date')
+                  deadline: formData.get('deadline')
                 });
               }}>
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Goal Name</label>
-                    <input name="name" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="e.g., Emergency Fund" />
+                    <input name="name" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Emergency Fund" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea name="description" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows={3} placeholder="Describe your goal..."></textarea>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Target Amount</label>
-                    <input name="target_amount" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="Goal amount" />
+                    <input name="target_amount" type="number" step="0.01" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="0.00" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Amount</label>
-                    <input name="current_amount" type="number" step="0.01" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-base" placeholder="Current savings (optional)" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Target Date</label>
-                    <input name="target_date" type="date" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900" />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Deadline</label>
+                    <input name="deadline" type="date" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
                   </div>
                 </div>
                 <div className="flex justify-end space-x-4 mt-8">
@@ -830,7 +823,7 @@ export default function Wealth() {
                     Cancel
                   </button>
                   <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium transition-all duration-300">
-                    Add Goal
+                    Create Goal
                   </button>
                 </div>
               </form>

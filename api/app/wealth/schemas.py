@@ -17,7 +17,7 @@ class SavingsGoalSchema(Schema):
     description = fields.Str()
     target_amount = fields.Float(required=True, validate=validate.Range(min=0))
     current_amount = fields.Float(dump_only=True)
-    target_date = fields.Date(format="%Y-%m-%d")
+    deadline = fields.Date(format="%Y-%m-%d")
     priority = fields.Str(validate=validate.OneOf(["low", "medium", "high"]))
     is_completed = fields.Bool(dump_only=True)
     user_id = fields.Int(dump_only=True)

@@ -1,110 +1,18 @@
-from flask import Blueprint, request, jsonify, current_app
-import requests
-import alpaca_trade_api as tradeapi
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.wealth.models import Investment, SavingsGoal, Notification, PriceAlert
-from app.extensions import db
-from datetime import datetime, date
 from marshmallow import ValidationError
+from datetime import datetime
+import requests
+
+from app.extensions import db
+from app.wealth.models import Investment, SavingsGoal, Notification, PriceAlert
 from app.wealth.schemas import InvestmentSchema, SavingsGoalSchema, PriceAlertSchema
 
-wealth_bp = Blueprint("wealth", __name__)
+wealth_bp = Blueprint('wealth', __name__)
 
 investment_schema = InvestmentSchema()
-investments_schema = InvestmentSchema(many=True)
 savings_goal_schema = SavingsGoalSchema()
-savings_goals_schema = SavingsGoalSchema(many=True)
 price_alert_schema = PriceAlertSchema()
-price_alerts_schema = PriceAlertSchema(many=True)
-
-# ===== INVESTMENTS ROUTES =====
-@wealth_bp.route("/investments", methods=["GET"])
-@jwt_required()
-def get_investments():
-    user_id = get_jwt_identity()
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 10, type=int)
-
-    investments_query = Investment.query.filter_by(user_id=user_id)
-
-    # Filtering options (example: by investment_type)
-    investment_type = request.args.get('investment_type')
-    if investment_type:
-        investments_query = investments_query.filter_by(investment_type=investment_type)
-
-    # Filtering options (example: by symbol)
-    symbol = request.args.get('symbol')
-    if symbol:
-        investments_query = investments_query.filter(Investment.symbol.ilike(f'%{symbol}%'))
-
-    investments_pagination = investments_query.paginate(page=page, per_page=per_page, error_out=False)
-    investments = investments_pagination.items
-
-    results = [{
-        "id": inv.id,
-        "symbol": inv.symbol,
-        "name": inv.name,
-        "quantity": inv.quantity,
-        "purchase_price": inv.purchase_price,
-        "current_price": inv.current_price,
-        "total_value": inv.total_value,
-        "profit_loss": inv.profit_loss,
-        "profit_loss_percentage": inv.profit_loss_percentage,
-        "investment_type": inv.investment_type
-    } for inv in investments]
-    return jsonify({
-        "investments": results,
-        "total_items": investments_pagination.total,
-        "total_pages": investments_pagination.pages,
-        "current_page": investments_pagination.page,
-        "per_page": investments_pagination.per_page
-    })
-
-@wealth_bp.route("/investments/<int:investment_id>", methods=["PUT"])
-@jwt_required()
-def update_investment(investment_id):
-    user_id = get_jwt_identity()
-    investment = Investment.query.filter_by(id=investment_id, user_id=user_id).first()
-    if not investment:
-        return jsonify({"error": "Investment not found"}), 404
-
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No input data provided"}), 400
-
-    try:
-        investment.symbol = data.get("symbol", investment.symbol)
-        investment.name = data.get("name", investment.name)
-        investment.quantity = data.get("quantity", investment.quantity)
-        investment.purchase_price = data.get("purchase_price", investment.purchase_price)
-        investment.current_price = data.get("current_price", investment.current_price)
-        investment.investment_type = data.get("investment_type", investment.investment_type)
-        # Recalculate derived fields
-        investment.total_value = investment.quantity * investment.current_price
-        investment.profit_loss = investment.total_value - (investment.quantity * investment.purchase_price)
-        investment.profit_loss_percentage = (investment.profit_loss / (investment.quantity * investment.purchase_price) * 100) if (investment.quantity * investment.purchase_price) > 0 else 0
-
-        db.session.commit()
-        return jsonify({"id": investment.id, "message": "Investment updated"})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to update investment: {str(e)}"}), 500
-
-@wealth_bp.route("/investments/<int:investment_id>", methods=["DELETE"])
-@jwt_required()
-def delete_investment(investment_id):
-    user_id = get_jwt_identity()
-    investment = Investment.query.filter_by(id=investment_id, user_id=user_id).first()
-    if not investment:
-        return jsonify({"error": "Investment not found"}), 404
-
-    try:
-        db.session.delete(investment)
-        db.session.commit()
-        return jsonify({"message": "Investment deleted"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to delete investment: {str(e)}"}), 500
 
 @wealth_bp.route("/investments", methods=["POST"])
 @jwt_required()
@@ -113,21 +21,15 @@ def create_investment():
     if not data:
         return jsonify({"error": "No input data provided"}), 400
     
-    investment = Investment(
-        symbol=data.get("symbol"),
-        name=data.get("name"),
-        quantity=data.get("quantity"),
-        purchase_price=data.get("purchase_price"),
-        current_price=data.get("current_price", data.get("purchase_price")),
-        investment_type=data.get("investment_type", "stock"),
-        user_id=get_jwt_identity(),
-        account_id=data.get("account_id")
-    )
-    
     try:
+        investment = investment_schema.load(data)
+        investment.user_id = get_jwt_identity() # Set user_id after loading
         db.session.add(investment)
         db.session.commit()
-        return jsonify({"id": investment.id, "message": "Investment created"}), 201
+        return jsonify(investment_schema.dump(investment)), 201
+    except ValidationError as err:
+        db.session.rollback()
+        return jsonify(err.messages), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to create investment"}), 500
@@ -227,7 +129,7 @@ def update_goal(goal_id):
         return jsonify({"id": goal.id, "message": "Goal updated"})
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Failed to update goal: {str(e)}"})
+        return jsonify({"error": f"Failed to update goal: {str(e)}"}), 500
 
 @wealth_bp.route("/goals/<int:goal_id>", methods=["DELETE"])
 @jwt_required()
@@ -243,7 +145,7 @@ def delete_goal(goal_id):
         return jsonify({"message": "Goal deleted"}), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Failed to delete goal: {str(e)}"})
+        return jsonify({"error": f"Failed to delete goal: {str(e)}"}), 500
 
 @wealth_bp.route("/goals", methods=["POST"])
 @jwt_required()
@@ -252,33 +154,15 @@ def create_goal():
     if not data:
         return jsonify({"error": "No input data provided"}), 400
     
-    # Parse target_date if provided
-    target_date = None
-    if data.get("target_date"):
-        try:
-            target_date = datetime.strptime(data["target_date"], "%Y-%m-%d").date()
-        except ValueError:
-            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
-    
-    # Validate required fields
-    if not data.get("name"):
-        return jsonify({"error": "Goal name is required"}), 400
-    if not data.get("target_amount") or data.get("target_amount") <= 0:
-        return jsonify({"error": "Target amount must be positive"}), 400
-    
-    goal = SavingsGoal(
-        name=data.get("name"),
-        description=data.get("description"),
-        target_amount=float(data.get("target_amount")),
-        target_date=target_date,
-        priority=data.get("priority", "medium"),
-        user_id=get_jwt_identity()
-    )
-    
     try:
+        goal = savings_goal_schema.load(data)
+        goal.user_id = get_jwt_identity()
         db.session.add(goal)
         db.session.commit()
-        return jsonify({"id": goal.id, "message": "Goal created"}), 201
+        return jsonify(savings_goal_schema.dump(goal)), 201
+    except ValidationError as err:
+        db.session.rollback()
+        return jsonify(err.messages), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to create goal: {str(e)}"}), 500
@@ -353,9 +237,7 @@ def get_market_data(symbol):
         response = requests.get(url)
         response.raise_for_status()  # Raise an exception for bad status codes
         data = response.json()
-        # print(f"Alpha Vantage response: {data}")
         
-        # Extract relevant data from the Alpha Vantage response
         global_quote = data.get("Global Quote")
         if not global_quote:
             return jsonify({"error": "Invalid symbol or no data available"}), 404
@@ -377,171 +259,6 @@ def get_market_data(symbol):
         print(f"Failed to parse data from Alpha Vantage: {str(e)}")
         return jsonify({"error": f"Failed to parse data from Alpha Vantage: {str(e)}"}), 500
 
-# ===== INVESTMENT ADVICE ROUTES =====
-@wealth_bp.route("/investment-advice", methods=["POST"])
-@jwt_required()
-def get_investment_advice():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No input data provided"}), 400
-
-    # Validate input
-    if "risk_tolerance" not in data or "financial_goals" not in data:
-        return jsonify({"error": "Missing required fields: risk_tolerance, financial_goals"}), 400
-
-    risk_tolerance = data["risk_tolerance"]
-    financial_goals = data["financial_goals"]
-
-    # In a real application, you would use a more sophisticated algorithm to generate investment advice.
-    # This could involve analyzing the user's risk tolerance, financial goals, and market conditions.
-    # For demonstration purposes, we'll return some generic advice based on risk tolerance.
-    if risk_tolerance == "low":
-        advice = {
-            "message": "Based on your low risk tolerance, we recommend a conservative portfolio focused on capital preservation.",
-            "recommendations": [
-                {"symbol": "BND", "name": "Vanguard Total Bond Market ETF", "action": "buy"},
-                {"symbol": "VTIP", "name": "Vanguard Short-Term Inflation-Protected Securities ETF", "action": "buy"}
-            ]
-        }
-    elif risk_tolerance == "medium":
-        advice = {
-            "message": "Based on your medium risk tolerance, we recommend a balanced portfolio with a mix of stocks and bonds.",
-            "recommendations": [
-                {"symbol": "VOO", "name": "Vanguard S&P 500 ETF", "action": "buy"},
-                {"symbol": "BND", "name": "Vanguard Total Bond Market ETF", "action": "buy"}
-            ]
-        }
-    elif risk_tolerance == "high":
-        advice = {
-            "message": "Based on your high risk tolerance, we recommend an aggressive portfolio with a focus on growth stocks.",
-            "recommendations": [
-                {"symbol": "QQQ", "name": "Invesco QQQ Trust", "action": "buy"},
-                {"symbol": "ARKK", "name": "ARK Innovation ETF", "action": "buy"}
-            ]
-        }
-    else:
-        return jsonify({"error": "Invalid risk tolerance. Please choose from: low, medium, high"}), 400
-
-    return jsonify(advice)
-
-# ===== PORTFOLIO REBALANCE ROUTES =====
-@wealth_bp.route("/portfolio-rebalance", methods=["POST"])
-@jwt_required()
-def rebalance_portfolio():
-    user_id = get_jwt_identity()
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No input data provided"}), 400
-
-    # Validate input
-    if "target_allocation" not in data:
-        return jsonify({"error": "Missing required field: target_allocation"}), 400
-
-    target_allocation = data["target_allocation"]
-
-    # In a real application, you would implement a portfolio rebalancing algorithm.
-    # This would involve fetching the user's current portfolio, comparing it to the target allocation,
-    # and generating a series of trades to bring the portfolio back in line.
-    # For demonstration purposes, we'll return a mock response.
-    response = {
-        "message": "Portfolio rebalanced successfully.",
-        "trades": [
-            {"symbol": "AAPL", "action": "sell", "quantity": 10},
-            {"symbol": "BND", "action": "buy", "quantity": 20}
-        ]
-    }
-    return jsonify(response)
-
-# ===== TRADES ROUTES =====
-@wealth_bp.route("/trades", methods=["POST"])
-@jwt_required()
-def execute_trade():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No input data provided"}), 400
-
-    # Validate input
-    if "symbol" not in data or "quantity" not in data or "side" not in data:
-        return jsonify({"error": "Missing required fields: symbol, quantity, side"}), 400
-
-    symbol = data["symbol"]
-    quantity = data["quantity"]
-    side = data["side"]
-    trading_mode = data.get("trading_mode", "paper")  # Default to paper trading
-
-    # Initialize Alpaca API
-    if trading_mode == 'live':
-        api = tradeapi.REST(
-            key_id=current_app.config.get("ALPACA_LIVE_API_KEY_ID"),
-            secret_key=current_app.config.get("ALPACA_LIVE_SECRET_KEY"),
-            base_url="https://api.alpaca.markets"
-        )
-    else:
-        api = tradeapi.REST(
-            key_id=current_app.config.get("ALPACA_PAPER_API_KEY_ID"),
-            secret_key=current_app.config.get("ALPACA_PAPER_SECRET_KEY"),
-            base_url="https://paper-api.alpaca.markets"
-        )
-
-    try:
-        # Submit order
-        order = api.submit_order(
-            symbol=symbol,
-            qty=quantity,
-            side=side,
-            type="market",
-            time_in_force="day"
-        )
-        return jsonify({"message": "Trade executed successfully", "order_id": order.id}), 200
-    except Exception as e:
-        return jsonify({"error": f"Failed to execute trade: {str(e)}"}), 500
-
-# ===== ORDERS ROUTES =====
-@wealth_bp.route("/orders", methods=["GET"])
-@jwt_required()
-def get_orders():
-    trading_mode = request.args.get("trading_mode", "paper")  # Default to paper trading
-
-    # Initialize Alpaca API
-    if trading_mode == 'live':
-        api = tradeapi.REST(
-            key_id=current_app.config.get("ALPACA_LIVE_API_KEY_ID"),
-            secret_key=current_app.config.get("ALPACA_LIVE_SECRET_KEY"),
-            base_url="https://api.alpaca.markets"
-        )
-    else:
-        api = tradeapi.REST(
-            key_id=current_app.config.get("ALPACA_PAPER_API_KEY_ID"),
-            secret_key=current_app.config.get("ALPACA_PAPER_SECRET_KEY"),
-            base_url="https://paper-api.alpaca.markets"
-        )
-
-    try:
-        # Get a list of orders
-        orders = api.list_orders(status="all")
-        return jsonify([order._raw for order in orders])
-    except Exception as e:
-        return jsonify({"error": f"Failed to fetch orders: {str(e)}"}), 500
-
-# ===== TOP INVESTMENTS =====
-@wealth_bp.route("/top-investments", methods=["GET"])
-@jwt_required()
-def get_top_investments():
-    # In a real application, you would use a more sophisticated algorithm to determine the top investments.
-    # This could involve analyzing market data, news sentiment, and other factors.
-    # For demonstration purposes, we'll return some mock data.
-    top_investments = [
-        {"symbol": "AAPL", "name": "Apple Inc.", "price": 231.59, "change": -1.19},
-        {"symbol": "GOOGL", "name": "Alphabet Inc.", "price": 175.95, "change": 1.23},
-        {"symbol": "MSFT", "name": "Microsoft Corporation", "price": 447.67, "change": -2.33},
-        {"symbol": "AMZN", "name": "Amazon.com, Inc.", "price": 184.88, "change": 0.94},
-        {"symbol": "TSLA", "name": "Tesla, Inc.", "price": 183.01, "change": -1.87}
-    ]
-    return jsonify(top_investments)
-
-
-
-
 # ===== ALERTS ROUTES =====
 @wealth_bp.route("/alerts", methods=["GET"])
 @jwt_required()
@@ -552,17 +269,14 @@ def get_alerts():
 
     notifications_query = Notification.query.filter_by(user_id=user_id).order_by(Notification.created_at.desc())
 
-    # Filtering options (example: by is_read)
     is_read = request.args.get('is_read')
     if is_read is not None:
         notifications_query = notifications_query.filter_by(is_read=is_read.lower() == 'true')
 
-    # Filtering options (example: by notification_type)
     notification_type = request.args.get('notification_type')
     if notification_type:
         notifications_query = notifications_query.filter_by(notification_type=notification_type)
 
-    # Filtering options (example: by priority)
     priority = request.args.get('priority')
     if priority:
         notifications_query = notifications_query.filter_by(priority=priority)
@@ -614,17 +328,14 @@ def get_price_alerts():
 
     alerts_query = PriceAlert.query.filter_by(user_id=user_id)
 
-    # Filtering options (example: by is_active)
     is_active = request.args.get('is_active')
     if is_active is not None:
         alerts_query = alerts_query.filter_by(is_active=is_active.lower() == 'true')
 
-    # Filtering options (example: by symbol)
     symbol = request.args.get('symbol')
     if symbol:
         alerts_query = alerts_query.filter(PriceAlert.symbol.ilike(f'%{symbol}%'))
 
-    # Filtering options (example: by condition)
     condition = request.args.get('condition')
     if condition:
         alerts_query = alerts_query.filter_by(condition=condition)
@@ -695,17 +406,15 @@ def create_price_alert():
     if not data:
         return jsonify({"error": "No input data provided"}), 400
     
-    alert = PriceAlert(
-        symbol=data.get("symbol"),
-        target_price=data.get("target_price"),
-        condition=data.get("condition"),
-        user_id=get_jwt_identity()
-    )
-    
     try:
+        alert = price_alert_schema.load(data)
+        alert.user_id = get_jwt_identity() # Set user_id after loading
         db.session.add(alert)
         db.session.commit()
-        return jsonify({"id": alert.id, "message": "Price alert created"}), 201
+        return jsonify(price_alert_schema.dump(alert)), 201
+    except ValidationError as err:
+        db.session.rollback()
+        return jsonify(err.messages), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to create price alert"}), 500

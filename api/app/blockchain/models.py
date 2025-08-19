@@ -50,31 +50,7 @@ class NFTCollection(db.Model):
     wallet_id = db.Column(db.Integer, db.ForeignKey('crypto_wallets.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class Block(db.Model):
-    __tablename__ = "blocks"
-    id = db.Column(db.Integer, primary_key=True)
-    index = db.Column(db.Integer, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    data = db.Column(db.Text, nullable=False)  # JSON string of transactions
-    previous_hash = db.Column(db.String(64), nullable=False)
-    hash = db.Column(db.String(64), nullable=False)
-    nonce = db.Column(db.Integer, default=0)
-    difficulty = db.Column(db.Integer, default=4)
-    mined_by = db.Column(db.String(100), nullable=True)
-    reward = db.Column(db.Float, default=0.0)
-    
-    def calculate_hash(self):
-        block_string = f"{self.index}{self.timestamp}{self.data}{self.previous_hash}{self.nonce}"
-        return hashlib.sha256(block_string.encode()).hexdigest()
-    
-    def mine_block(self, difficulty=4):
-        target = "0" * difficulty
-        if self.nonce is None:
-            self.nonce = 0
-        self.hash = self.calculate_hash()  # Initialize hash
-        while not self.hash.startswith(target):
-            self.nonce += 1
-            self.hash = self.calculate_hash()
+
 
 class CryptoTransaction(db.Model):
     __tablename__ = "crypto_transactions"

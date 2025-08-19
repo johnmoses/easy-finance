@@ -36,7 +36,7 @@ class SavingsGoal(db.Model):
     description = db.Column(db.Text)
     target_amount = db.Column(db.Float, nullable=False)
     current_amount = db.Column(db.Float, default=0.0)
-    target_date = db.Column(db.Date)
+    deadline = db.Column(db.Date)
     priority = db.Column(db.String(20), default='medium')  # low, medium, high
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     is_completed = db.Column(db.Boolean, default=False)
@@ -54,8 +54,8 @@ class SavingsGoal(db.Model):
     
     @property
     def days_remaining(self):
-        if self.target_date:
-            delta = self.target_date - date.today()
+        if self.deadline:
+            delta = self.deadline - date.today()
             return max(delta.days, 0)
         return None
 

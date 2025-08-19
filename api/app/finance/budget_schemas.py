@@ -1,5 +1,5 @@
 from app.extensions import ma
-from app.planning.models import Budget
+from app.finance.budget_models import Budget
 from marshmallow import fields, validates, ValidationError
 from datetime import date
 

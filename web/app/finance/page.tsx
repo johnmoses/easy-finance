@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { financeService } from '../../xlib/services';
-import { Plus, CreditCard, TrendingUp, TrendingDown, Wallet, Receipt, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Plus, CreditCard, TrendingUp, TrendingDown, Wallet, Receipt, ArrowUpRight, ArrowDownRight, Calculator, AlertCircle } from 'lucide-react';
 
 interface Account {
   id: number;
@@ -21,12 +21,23 @@ interface Transaction {
   account_id: number;
 }
 
+interface Budget {
+  id: number;
+  name: string;
+  amount: number;
+  spent?: number;
+  category: string;
+  period: string;
+}
+
 export default function Finance() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [activeTab, setActiveTab] = useState<'accounts' | 'transactions'>('accounts');
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [activeTab, setActiveTab] = useState<'accounts' | 'transactions' | 'budgets'>('accounts');
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedAccountForUpload, setSelectedAccountForUpload] = useState<string>('');
@@ -74,12 +85,18 @@ export default function Finance() {
 
   const fetchData = async () => {
     try {
-      const [accountsRes, transactionsRes] = await Promise.all([
+      const [accountsRes, transactionsRes, budgetsRes] = await Promise.all([
         financeService.getAccounts(),
-        financeService.getTransactions()
+        financeService.getTransactions(),
+        financeService.getBudgets().catch(() => ({ data: [] }))
       ]);
       setAccounts(accountsRes.data);
       setTransactions(transactionsRes.data);
+      setBudgets(budgetsRes.data.map((budget: any) => ({
+        ...budget,
+        amount: budget.amount || 0,
+        spent: budget.spent || 0
+      })));
     } catch (error) {
       console.error('Failed to fetch finance data:', error);
     } finally {
@@ -109,6 +126,25 @@ export default function Finance() {
       console.error('Error response:', error.response?.data);
       alert(`Failed to create transaction: ${error.response?.data?.error || error.message}`);
     }
+  };
+
+  const createBudget = async (formData: any) => {
+    try {
+      await financeService.createBudget(formData);
+      fetchData();
+      setShowBudgetForm(false);
+    } catch (error) {
+      console.error('Failed to create budget:', error);
+    }
+  };
+
+  const getBudgetStatus = (budget: Budget) => {
+    const spent = budget?.spent || 0;
+    const amount = budget?.amount || 1;
+    const percentage = (spent / amount) * 100;
+    if (percentage >= 100) return { status: 'over', color: 'text-red-600', bgColor: 'bg-red-600' };
+    if (percentage >= 80) return { status: 'warning', color: 'text-yellow-600', bgColor: 'bg-yellow-600' };
+    return { status: 'good', color: 'text-green-600', bgColor: 'bg-green-600' };
   };
 
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
@@ -212,12 +248,23 @@ export default function Finance() {
               <Receipt className="h-5 w-5 inline mr-2" />
               Transactions ({transactions.length})
             </button>
+            <button
+              onClick={() => setActiveTab('budgets')}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+                activeTab === 'budgets'
+                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              <Calculator className="h-5 w-5 inline mr-2" />
+              Budgets ({budgets.length})
+            </button>
           </div>
 
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-semibold text-slate-800">
-                {activeTab === 'accounts' ? 'Your Accounts' : 'Transaction History'}
+                {activeTab === 'accounts' ? 'Your Accounts' : activeTab === 'transactions' ? 'Transaction History' : 'Budget Management'}
               </h2>
               <div className="space-x-3">
                 {activeTab === 'accounts' ? (
@@ -228,7 +275,7 @@ export default function Finance() {
                     <Plus className="h-4 w-4" />
                     <span>Add Account</span>
                   </button>
-                ) : (
+                ) : activeTab === 'transactions' ? (
                   <>
                     <button
                       onClick={() => setShowTransactionForm(true)}
@@ -245,6 +292,14 @@ export default function Finance() {
                       <span>Upload Transactions</span>
                     </button>
                   </>
+                ) : (
+                  <button
+                    onClick={() => setShowBudgetForm(true)}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Budget</span>
+                  </button>
                 )}
               </div>
             </div>
@@ -283,7 +338,7 @@ export default function Finance() {
                   ))
                 )}
               </div>
-            ) : (
+            ) : activeTab === 'transactions' ? (
               <div className="space-y-4">
                 {transactions.length === 0 ? (
                   <div className="text-center py-12">
@@ -322,6 +377,74 @@ export default function Finance() {
                             {new Date(transaction.timestamp).toLocaleDateString()}
                           </p>
                         </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {budgets.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Calculator className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg">No budgets found</p>
+                    <p className="text-gray-400">Create your first budget to start planning</p>
+                  </div>
+                ) : (
+                  budgets.map((budget) => {
+                    const spent = budget.spent || 0;
+                    const percentage = (spent / budget.amount) * 100;
+                    const status = getBudgetStatus({ ...budget, spent });
+                    
+                    return (
+                      <div key={budget.id} className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center space-x-4">
+                            <div className={`p-3 rounded-lg ${
+                              status.status === 'over' ? 'bg-red-100 text-red-600' :
+                              status.status === 'warning' ? 'bg-yellow-100 text-yellow-600' :
+                              'bg-green-100 text-green-600'
+                            }`}>
+                              <Calculator className="h-6 w-6" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-lg text-slate-800">{budget.name}</h4>
+                              <p className="text-gray-600 capitalize">{budget.category} • {budget.period}</p>
+                              <p className="text-sm text-gray-500">Remaining: ${((budget?.amount || 0) - spent).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-xl text-slate-800">
+                              ${(budget?.amount || 0).toLocaleString()}
+                            </p>
+                            <p className={`text-sm font-medium ${status.color}`}>
+                              ${spent.toLocaleString()} spent
+                            </p>
+                            <p className="text-sm text-gray-600">{percentage.toFixed(1)}%</p>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                          <div
+                            className={`h-3 rounded-full transition-all duration-300 ${
+                              status.status === 'over' ? 'bg-gradient-to-r from-red-500 to-pink-600' :
+                              status.status === 'warning' ? 'bg-gradient-to-r from-yellow-500 to-orange-600' :
+                              'bg-gradient-to-r from-green-500 to-emerald-600'
+                            }`}
+                            style={{ width: `${Math.min(percentage, 100)}%` }}
+                          ></div>
+                        </div>
+                        {status.status === 'over' && (
+                          <div className="flex items-center text-red-600 text-sm">
+                            <AlertCircle className="h-4 w-4 mr-1" />
+                            <span>Over budget by ${(spent - (budget?.amount || 0)).toLocaleString()}!</span>
+                          </div>
+                        )}
+                        {status.status === 'warning' && (
+                          <div className="flex items-center text-yellow-600 text-sm">
+                            <AlertCircle className="h-4 w-4 mr-1" />
+                            <span>Approaching budget limit</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })
