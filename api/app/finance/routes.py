@@ -1,9 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.finance.models import Account, Transaction
-from app.finance.schemas import account_schema, accounts_schema, transaction_schema, transactions_schema
-from app.finance.budget_models import Budget
-from app.finance.budget_schemas import budget_schema, budgets_schema
+from app.finance.models import Account, Transaction, Budget
+from app.finance.schemas import account_schema, accounts_schema, transaction_schema, transactions_schema, budget_schema, budgets_schema
 from app.ai.categorizer import auto_categorize_transaction
 from app.extensions import db
 from app.finance.services import process_uploaded_transactions

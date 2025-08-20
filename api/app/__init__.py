@@ -13,11 +13,6 @@ from app.extensions import (
 )
 # Import all models for database creation
 from app.auth.models import User
-from app.finance.models import Account, Transaction
-from app.planning.models import Budget
-from app.wealth.models import Investment, SavingsGoal, Notification, PriceAlert
-from app.blockchain.models import CryptoWallet, DeFiPosition, NFTCollection, Block, CryptoTransaction
-from app.chat.models import ChatRoom, ChatMessage, ChatParticipant
 
 def create_app():
     app = Flask(__name__)
@@ -36,14 +31,12 @@ def create_app():
     from app.chat.routes import chat_bp
     from app.finance.routes import finance_bp
     from app.wealth.routes import wealth_bp
-    from app.planning.routes import planning_bp
     from app.blockchain.routes import blockchain_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(chat_bp, url_prefix="/api/chat")
     app.register_blueprint(finance_bp, url_prefix="/api/finance")
     app.register_blueprint(wealth_bp, url_prefix="/api/wealth")
-    app.register_blueprint(planning_bp, url_prefix="/api/planning")
     app.register_blueprint(blockchain_bp, url_prefix="/api/blockchain")
 
     # --- JWT Token Revocation (Blacklist) ---

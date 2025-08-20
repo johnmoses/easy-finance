@@ -20,7 +20,6 @@ export default function Navbar() {
               <Link href="/dashboard" className="hover:text-blue-200">Dashboard</Link>
               <Link href="/finance" className="hover:text-blue-200">Finance</Link>
               <Link href="/wealth" className="hover:text-blue-200">Wealth</Link>
-              <Link href="/planning" className="hover:text-blue-200">Planning</Link>
               <Link href="/blockchain" className="hover:text-blue-200">Blockchain</Link>
               <Link href="/chat" className="hover:text-blue-200">Chat</Link>
               

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../xlib/auth';
 import api from '../../xlib/api';
-import { TrendingUp, DollarSign, CreditCard, Target, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import { TrendingUp, DollarSign, Target, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
 
 interface DashboardData {
   totalBalance: number;

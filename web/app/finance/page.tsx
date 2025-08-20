@@ -50,6 +50,8 @@ export default function Finance() {
     }
   };
 
+  const [loading, setLoading] = useState(true);
+
   const handleFileUpload = async () => {
     if (!selectedFile) {
       alert('Please select a file to upload.');
@@ -77,7 +79,6 @@ export default function Finance() {
       setLoading(false);
     }
   };
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();

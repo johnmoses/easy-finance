@@ -8,17 +8,15 @@ import os
 import sys
 from datetime import datetime, date, timedelta
 import random
-from decimal import Decimal
 
 # Add the app directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app, db
 from app.auth.models import User
-from app.finance.models import Account, Transaction
-from app.planning.models import Budget
+from app.finance.models import Account, Transaction, Budget
 from app.wealth.models import Investment, SavingsGoal, Notification, PriceAlert
-from app.blockchain.models import CryptoWallet, DeFiPosition, NFTCollection, CryptoTransaction, Block
+from app.blockchain.models import CryptoWallet, DeFiPosition, NFTCollection
 from app.chat.models import ChatRoom, ChatMessage, ChatParticipant
 
 def create_users():
@@ -61,18 +59,29 @@ def create_users():
         db.session.add(user)
         users.append(user)
     
-    db.session.commit()
+
     print(f"✅ Created {len(users)} users")
     return users
 
 def create_accounts(users):
     """Create sample accounts for users"""
-    account_types = ["checking", "savings", "credit", "investment"]
+    account_types = ["checking", "savings", "credit"]
     accounts = []
     
     for user in users[:3]:  # Skip admin user
-        # Create 2-3 accounts per user
-        for i in range(random.randint(2, 3)):
+        # Create 1 investment account for each user
+        investment_account = Account(
+            name=f"{user.username.title()}'s Investment",
+            account_type="investment",
+            balance=round(random.uniform(1000, 25000), 2),
+            currency="USD",
+            user_id=user.id
+        )
+        db.session.add(investment_account)
+        accounts.append(investment_account)
+
+        # Create 1-2 other accounts per user
+        for i in range(random.randint(1, 2)):
             account_type = random.choice(account_types)
             balance = random.uniform(100, 10000) if account_type != "credit" else random.uniform(-2000, 0)
             
@@ -86,7 +95,7 @@ def create_accounts(users):
             db.session.add(account)
             accounts.append(account)
     
-    db.session.commit()
+
     print(f"✅ Created {len(accounts)} accounts")
     return accounts
 
@@ -140,7 +149,7 @@ def create_transactions(users, accounts):
             db.session.add(transaction)
             transactions.append(transaction)
     
-    db.session.commit()
+
     print(f"✅ Created {len(transactions)} transactions")
     return transactions
 
@@ -170,7 +179,7 @@ def create_budgets(users):
             db.session.add(budget)
             budgets.append(budget)
     
-    db.session.commit()
+
     print(f"✅ Created {len(budgets)} budgets")
     return budgets
 
@@ -213,7 +222,7 @@ def create_investments(users, accounts):
             db.session.add(investment)
             investments.append(investment)
     
-    db.session.commit()
+
     print(f"✅ Created {len(investments)} investments")
     return investments
 
@@ -241,7 +250,7 @@ def create_savings_goals(users):
                 description=f"Saving for {goal_template['name'].lower()}",
                 target_amount=goal_template["target"],
                 current_amount=round(current_amount, 2),
-                target_date=target_date,
+                deadline=target_date,
                 priority=goal_template["priority"],
                 user_id=user.id,
                 is_completed=current_amount >= goal_template["target"]
@@ -249,7 +258,7 @@ def create_savings_goals(users):
             db.session.add(goal)
             goals.append(goal)
     
-    db.session.commit()
+
     print(f"✅ Created {len(goals)} savings goals")
     return goals
 
@@ -270,7 +279,7 @@ def create_crypto_wallets(users):
         for crypto in random.sample(crypto_currencies, random.randint(2, 3)):
             wallet = CryptoWallet(
                 name=f"{crypto['currency']} Wallet",
-                address=f"{'1' if crypto['currency'] == 'BTC' else '0x'}{''.join(random.choices('0123456789abcdef', k=40))}",
+                address=f"{('1' if crypto['currency'] == 'BTC' else '0x')}{''.join(random.choices('0123456789abcdef', k=40))}",
                 currency=crypto["currency"],
                 balance=crypto["balance"] * random.uniform(0.1, 2.0),
                 network="mainnet",
@@ -280,7 +289,7 @@ def create_crypto_wallets(users):
             db.session.add(wallet)
             wallets.append(wallet)
     
-    db.session.commit()
+
     print(f"✅ Created {len(wallets)} crypto wallets")
     return wallets
 
@@ -320,7 +329,7 @@ def create_defi_positions(users, wallets):
             db.session.add(position)
             positions.append(position)
     
-    db.session.commit()
+
     print(f"✅ Created {len(positions)} DeFi positions")
     return positions
 
@@ -360,7 +369,7 @@ def create_nfts(users, wallets):
             db.session.add(nft)
             nfts.append(nft)
     
-    db.session.commit()
+
     print(f"✅ Created {len(nfts)} NFTs")
     return nfts
 
@@ -394,7 +403,7 @@ def create_notifications(users):
             db.session.add(notification)
             notifications.append(notification)
     
-    db.session.commit()
+
     print(f"✅ Created {len(notifications)} notifications")
     return notifications
 
@@ -424,7 +433,7 @@ def create_price_alerts(users):
             db.session.add(alert)
             alerts.append(alert)
     
-    db.session.commit()
+
     print(f"✅ Created {len(alerts)} price alerts")
     return alerts
 
@@ -437,7 +446,8 @@ def create_chat_rooms(users):
         db.session.add(room)
         rooms.append(room)
     
-    db.session.commit()
+    db.session.flush()
+
     
     # Add participants and messages
     messages = []
@@ -468,27 +478,27 @@ def create_chat_rooms(users):
             db.session.add(message)
             messages.append(message)
     
-    db.session.commit()
+
     print(f"✅ Created {len(rooms)} chat rooms with {len(messages)} messages")
     return rooms, messages
 
-def create_genesis_block():
-    """Create the first block in the chain"""
-    import json
-    genesis_block = Block(
-        index=0,
-        data=json.dumps([{"message": "Genesis Block"}]),
-        previous_hash="0",
-        hash="",
-        nonce=0,
-        difficulty=4,
-        mined_by="system",
-        reward=0
-    )
-    genesis_block.hash = genesis_block.calculate_hash()
-    db.session.add(genesis_block)
-    db.session.commit()
-    print("✅ Created genesis block")
+# def create_genesis_block():
+#     """Create the first block in the chain"""
+#     import json
+#     genesis_block = Block(
+#         index=0,
+#         data=json.dumps([{"message": "Genesis Block"}]),
+#         previous_hash="0",
+#         hash="",
+#         nonce=0,
+#         difficulty=4,
+#         mined_by="system",
+#         reward=0
+#     )
+#     genesis_block.hash = genesis_block.calculate_hash()
+#     db.session.add(genesis_block)
+# 
+#     print("✅ Created genesis block")
 
 def main():
     """Main function to populate database with seed data"""
@@ -505,19 +515,42 @@ def main():
         db.create_all()
         
         # Create seed data
-        create_genesis_block()
+        # create_genesis_block()
         users = create_users()
+        db.session.commit() # Commit users to get their IDs
+        
         accounts = create_accounts(users)
+        db.session.commit() # Commit accounts to get their IDs
+        
         transactions = create_transactions(users, accounts)
+        db.session.commit()
+        
         budgets = create_budgets(users)
+        db.session.commit()
+        
         investments = create_investments(users, accounts)
+        db.session.commit()
+        
         goals = create_savings_goals(users)
+        db.session.commit()
+        
         wallets = create_crypto_wallets(users)
+        db.session.commit()
+        
         defi_positions = create_defi_positions(users, wallets)
+        db.session.commit()
+        
         nfts = create_nfts(users, wallets)
+        db.session.commit()
+        
         notifications = create_notifications(users)
+        db.session.commit()
+        
         alerts = create_price_alerts(users)
+        db.session.commit()
+        
         rooms, messages = create_chat_rooms(users)
+        db.session.commit()
         
         print("\n🎉 Seed data generation completed successfully!")
         print("\n📊 Summary:")

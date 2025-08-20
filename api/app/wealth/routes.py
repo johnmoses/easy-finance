@@ -14,6 +14,13 @@ investment_schema = InvestmentSchema()
 savings_goal_schema = SavingsGoalSchema()
 price_alert_schema = PriceAlertSchema()
 
+@wealth_bp.route("/investments", methods=["GET"])
+@jwt_required()
+def get_investments():
+    user_id = get_jwt_identity()
+    investments = Investment.query.filter_by(user_id=user_id).all()
+    return jsonify(investment_schema.dump(investments, many=True)), 200
+
 @wealth_bp.route("/investments", methods=["POST"])
 @jwt_required()
 def create_investment():
@@ -83,7 +90,7 @@ def get_goals():
         "current_amount": goal.current_amount,
         "progress_percentage": goal.progress_percentage,
         "remaining_amount": goal.remaining_amount,
-        "target_date": goal.target_date.isoformat() if goal.target_date else None,
+        "deadline": goal.deadline.isoformat() if goal.deadline else None,
         "days_remaining": goal.days_remaining,
         "priority": goal.priority,
         "is_completed": goal.is_completed
@@ -108,11 +115,11 @@ def update_goal(goal_id):
     if not data:
         return jsonify({"error": "No input data provided"}), 400
 
-    # Parse target_date if provided
-    target_date = None
-    if data.get("target_date"):
+    # Parse deadline if provided
+    deadline = None
+    if data.get("deadline"):
         try:
-            target_date = datetime.strptime(data["target_date"], "%Y-%m-%d").date()
+            deadline = datetime.strptime(data["deadline"], "%Y-%m-%d").date()
         except ValueError:
             return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
 
@@ -121,7 +128,7 @@ def update_goal(goal_id):
         goal.description = data.get("description", goal.description)
         goal.target_amount = data.get("target_amount", goal.target_amount)
         goal.current_amount = data.get("current_amount", goal.current_amount)
-        goal.target_date = target_date if target_date else goal.target_date
+        goal.deadline = deadline if deadline else goal.deadline
         goal.priority = data.get("priority", goal.priority)
         goal.is_completed = data.get("is_completed", goal.is_completed)
 

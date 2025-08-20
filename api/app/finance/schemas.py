@@ -1,5 +1,5 @@
 from app.extensions import ma
-from app.finance.models import Account, Transaction
+from app.finance.models import Account, Transaction, Budget
 from marshmallow import fields, validates, ValidationError
 
 class AccountSchema(ma.SQLAlchemyAutoSchema):
@@ -42,8 +42,34 @@ class TransactionSchema(ma.SQLAlchemyAutoSchema):
     def validate_category(self, value):
         if not value or len(value.strip()) == 0:
             raise ValidationError("Category is required")
+        
+class BudgetSchema(ma.SQLAlchemyAutoSchema):
+    remaining = fields.Float(dump_only=True)
+    percentage_used = fields.Float(dump_only=True)
+    
+    class Meta:
+        model = Budget
+        load_instance = True
+        exclude = ('user_id',)
+    
+    @validates('limit')
+    def validate_limit(self, value):
+        if value <= 0:
+            raise ValidationError("Budget limit must be positive")
+    
+    @validates('spent')
+    def validate_spent(self, value):
+        if value < 0:
+            raise ValidationError("Spent amount cannot be negative")
+    
+    @validates('period_end')
+    def validate_period_end(self, value):
+        if hasattr(self, 'period_start') and value <= self.period_start:
+            raise ValidationError("Period end must be after period start")
 
 account_schema = AccountSchema()
 accounts_schema = AccountSchema(many=True)
 transaction_schema = TransactionSchema()
 transactions_schema = TransactionSchema(many=True)
+budget_schema = BudgetSchema()
+budgets_schema = BudgetSchema(many=True)

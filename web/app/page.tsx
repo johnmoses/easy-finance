@@ -47,14 +47,6 @@ export default function Home() {
               <p className="text-gray-600">Investment portfolio tracking</p>
             </Link>
             
-            <Link href="/planning" className="group bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="bg-orange-100 w-16 h-16 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-200 transition-colors">
-                <Target className="h-8 w-8 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-slate-800">Planning</h3>
-              <p className="text-gray-600">Goals and budget management</p>
-            </Link>
-            
             <Link href="/blockchain" className="group bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="bg-indigo-100 w-16 h-16 rounded-lg flex items-center justify-center mb-4 group-hover:bg-indigo-200 transition-colors">
                 <Shield className="h-8 w-8 text-indigo-600" />

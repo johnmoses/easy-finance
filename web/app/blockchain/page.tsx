@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { blockchainService } from '../../xlib/services';
-import { Shield, Coins, TrendingUp, Plus, Wallet, Zap, Image, BarChart3, Trophy } from 'lucide-react';
+import { Coins, TrendingUp, Plus, Wallet, Zap, Image, BarChart3, Trophy } from 'lucide-react';
 
 interface CryptoWallet {
   id: number;
@@ -42,28 +42,19 @@ interface CryptoHolding {
   current_price: number;
 }
 
-interface LeaderboardEntry {
-  username: string;
-  blocks_mined: number;
-}
+
 
 export default function Blockchain() {
   const [wallets, setWallets] = useState<CryptoWallet[]>([]);
   const [defiPositions, setDefiPositions] = useState<DeFiPosition[]>([]);
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [cryptoHoldings, setCryptoHoldings] = useState<CryptoHolding[]>([]);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [prices, setPrices] = useState<any>({});
-  const [activeTab, setActiveTab] = useState<'wallets' | 'defi' | 'nft' | 'crypto' | 'mining'>('wallets');
+  const [activeTab, setActiveTab] = useState<'wallets' | 'defi' | 'nft' | 'crypto'>('wallets');
   const [showWalletForm, setShowWalletForm] = useState(false);
   const [showDefiForm, setShowDefiForm] = useState(false);
   const [showNftForm, setShowNftForm] = useState(false);
-  const [showCryptoForm, setShowCryptoForm] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [latestBlock, setLatestBlock] = useState<any>(null);
-  const [nonce, setNonce] = useState(0);
-  const [mining, setMining] = useState(false);
-  const [message, setMessage] = useState('');
   const [networkMode, setNetworkMode] = useState('testnet');
 
   useEffect(() => {
@@ -72,19 +63,15 @@ export default function Blockchain() {
 
   const fetchData = async () => {
     try {
-      const [walletsRes, defiRes, nftsRes, leaderboardRes] = await Promise.all([
+      const [walletsRes, defiRes, nftsRes] = await Promise.all([
         blockchainService.getWallets().catch(() => ({ data: [] })),
         blockchainService.getDeFiPositions().catch(() => ({ data: [] })),
         blockchainService.getNFTs().catch(() => ({ data: [] })),
-        blockchainService.getLeaderboard().catch(() => ({ data: [] })),
-        blockchainService.getLatestBlock().catch(() => ({ data: null }))
       ]);
 
       setWallets(walletsRes.data);
       setDefiPositions(defiRes.data);
       setNfts(nftsRes.data);
-      setLeaderboard(leaderboardRes.data);
-      setLatestBlock(await blockchainService.getLatestBlock().then(res => res.data));
 
       if (walletsRes.data.length > 0) {
         const coinIds = walletsRes.data.map((wallet: CryptoWallet) => wallet.currency.toLowerCase());
@@ -115,7 +102,7 @@ export default function Blockchain() {
     }
   };
 
-  const createDefiPosition = async (formData: any) => {
+  const createDeFiPosition = async (formData: any) => {
     try {
       await blockchainService.createDeFiPosition(formData);
       fetchData();
@@ -125,7 +112,7 @@ export default function Blockchain() {
     }
   };
 
-  const createNft = async (formData: any) => {
+  const addNFT = async (formData: any) => {
     try {
       await blockchainService.addNFT(formData);
       fetchData();
@@ -135,15 +122,11 @@ export default function Blockchain() {
     }
   };
 
-  const createCryptoHolding = async (formData: any) => {
-    try {
-      const newHolding = { id: Date.now(), ...formData };
-      setCryptoHoldings(prev => [...prev, newHolding]);
-      setShowCryptoForm(false);
-    } catch (error) {
-      console.error('Failed to add crypto holding:', error);
-    }
-  };
+  
+
+  
+
+  
 
   const refreshBalance = async (walletId: number) => {
     try {
@@ -154,19 +137,7 @@ export default function Blockchain() {
       console.error('Failed to refresh balance:', error);
     }
   };
-  const handleMine = async () => {
-    setMining(true);
-    setMessage('');
-    try {
-      const res = await blockchainService.mineBlock({ transactions: [], nonce });
-      setMessage(res.data.message);
-      setMining(false);
-      fetchData();
-    } catch (error: any) {
-      setMessage(error.response?.data?.error || 'Failed to mine block');
-      setMining(false);
-    }
-  };
+  
 
   if (loading) {
     return (
@@ -324,16 +295,6 @@ export default function Blockchain() {
               <Coins className="h-5 w-5 inline mr-2" />
               Crypto ({cryptoHoldings.length})
             </button>
-            <button
-              onClick={() => setActiveTab('mining')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === 'mining'
-                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-800 hover:bg-ray-50'
-                }`}
-            >
-              <Trophy className="h-5 w-5 inline mr-2" />
-              Mining
-            </button>
           </div>
 
           <div className="p-6">
@@ -342,7 +303,7 @@ export default function Blockchain() {
                 {activeTab === 'wallets' ? 'Crypto Wallets' :
                   activeTab === 'defi' ? 'DeFi Positions' :
                     activeTab === 'nft' ? 'NFT Collection' :
-                      activeTab === 'crypto' ? 'Crypto Holdings' : 'Mining & Leaderboard'}
+                      'Crypto Holdings'}
               </h2>
               <div className="space-x-3">
                 {activeTab === 'wallets' && (
@@ -372,15 +333,7 @@ export default function Blockchain() {
                     <span>Add NFT</span>
                   </button>
                 )}
-                {activeTab === 'crypto' && (
-                  <button
-                    onClick={() => setShowCryptoForm(true)}
-                    className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-6 py-3 rounded-lg hover:from-orange-700 hover:to-amber-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add Crypto</span>
-                  </button>
-                )}
+                
               </div>
             </div>
 
@@ -544,60 +497,7 @@ export default function Blockchain() {
                 )}
               </div>
             ) : (
-              <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="p-6 bg-gray-50 rounded-lg">
-                    <h3 className="text-xl font-semibold text-slate-800 mb-4">Mine New Blocks</h3>
-                    {latestBlock && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Index</label>
-                          <p className="font-mono text-sm p-2 bg-gray-100 rounded">{latestBlock.index}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Previous Hash</label>
-                          <p className="font-mono text-sm p-2 bg-gray-100 rounded">{latestBlock.previous_hash}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
-                          <p className="font-mono text-sm p-2 bg-gray-100 rounded">{latestBlock.difficulty}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Nonce</label>
-                          <input
-                            type="number"
-                            value={nonce}
-                            onChange={(e) => setNonce(parseInt(e.target.value))}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                          />
-                        </div>
-                        <button
-                          onClick={handleMine}
-                          disabled={mining}
-                          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-indigo-700 flex items-center justify-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                        >
-                          {mining ? 'Mining...' : 'Mine Block'}
-                        </button>
-                        {message && <p className="text-sm text-gray-600 mt-4">{message}</p>}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-slate-800 mb-4">Leaderboard</h3>
-                    <div className="space-y-3">
-                      {leaderboard.map((entry, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-4">
-                            <Trophy className={`h-6 w-6 ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-gray-400' : index === 2 ? 'text-yellow-600' : 'text-gray-300'}`} />
-                            <p className="font-medium text-slate-800">{entry.username}</p>
-                          </div>
-                          <p className="font-semibold text-slate-600">{entry.blocks_mined} blocks</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              null
             )}
           </div>
         </div>
@@ -655,7 +555,140 @@ export default function Blockchain() {
           </div>
         )}
 
-        {/* Additional modals for other forms would go here */}
+        {/* DeFi Position Form Modal */}
+        {showDefiForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl p-8 w-full max-w-md shadow-2xl">
+              <h3 className="text-2xl font-bold mb-6 text-slate-800">Add New DeFi Position</h3>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                createDeFiPosition({
+                  protocol: formData.get('protocol'),
+                  position_type: formData.get('position_type'),
+                  token_pair: formData.get('token_pair'),
+                  amount_deposited: parseFloat(formData.get('amount_deposited') as string) || 0,
+                  current_value: parseFloat(formData.get('current_value') as string) || 0,
+                  apy: parseFloat(formData.get('apy') as string) || 0,
+                  wallet_id: parseInt(formData.get('wallet_id') as string) || null,
+                });
+              }}>
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Protocol</label>
+                    <input name="protocol" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="e.g., Uniswap" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Position Type</label>
+                    <input name="position_type" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="e.g., Liquidity Pool" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Token Pair</label>
+                    <input name="token_pair" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="e.g., ETH/USDC" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Amount Deposited</label>
+                    <input name="amount_deposited" type="number" step="0.01" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="1000.00" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Value (Optional)</label>
+                    <input name="current_value" type="number" step="0.01" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="1050.00" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">APY (Optional)</label>
+                    <input name="apy" type="number" step="0.01" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="12.5" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Associated Wallet ID (Optional)</label>
+                    <input name="wallet_id" type="number" step="1" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="1" />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-4 mt-8">
+                  <button type="button" onClick={() => setShowDefiForm(false)} className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium">
+                    Cancel
+                  </button>
+                  <button type="submit" className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 font-medium transition-all duration-300">
+                    Add Position
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* NFT Form Modal */}
+        {showNftForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl p-8 w-full max-w-md shadow-2xl">
+              <h3 className="text-2xl font-bold mb-6 text-slate-800">Add New NFT</h3>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                addNFT({
+                  name: formData.get('name'),
+                  contract_address: formData.get('contract_address'),
+                  token_id: formData.get('token_id'),
+                  purchase_price: parseFloat(formData.get('purchase_price') as string) || 0,
+                  current_price: parseFloat(formData.get('current_price') as string) || 0,
+                  currency: formData.get('currency'),
+                  marketplace: formData.get('marketplace'),
+                  metadata_url: formData.get('metadata_url'),
+                  wallet_id: parseInt(formData.get('wallet_id') as string) || null,
+                });
+              }}>
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">NFT Name</label>
+                    <input name="name" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="e.g., CryptoPunk #1234" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Contract Address</label>
+                    <input name="contract_address" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent font-mono text-sm" placeholder="0x..." />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Token ID</label>
+                    <input name="token_id" type="text" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="1234" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Price (Optional)</label>
+                    <input name="purchase_price" type="number" step="0.01" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="1.0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Price (Optional)</label>
+                    <input name="current_price" type="number" step="0.01" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="1.2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Currency (Optional)</label>
+                    <select name="currency" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                      <option value="ETH">Ethereum (ETH)</option>
+                      <option value="USD">USD</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Marketplace (Optional)</label>
+                    <input name="marketplace" type="text" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="e.g., OpenSea" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Metadata URL (Optional)</label>
+                    <input name="metadata_url" type="text" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="https://..." />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Associated Wallet ID (Optional)</label>
+                    <input name="wallet_id" type="number" step="1" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="1" />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-4 mt-8">
+                  <button type="button" onClick={() => setShowNftForm(false)} className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium">
+                    Cancel
+                  </button>
+                  <button type="submit" className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-6 py-3 rounded-lg hover:from-pink-700 hover:to-rose-700 font-medium transition-all duration-300">
+                    Add NFT
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

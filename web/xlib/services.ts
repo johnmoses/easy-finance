@@ -14,8 +14,8 @@ export const financeService = {
       },
     });
   },
-  getBudgets: () => api.get('/planning/budgets'),
-  createBudget: (data: any) => api.post('/planning/budgets', data),
+  getBudgets: () => api.get('/finance/budgets'),
+  createBudget: (data: any) => api.post('/finance/budgets', data),
 };
 
 // Wealth Services
@@ -25,10 +25,7 @@ export const wealthService = {
   getSavingsGoals: () => api.get('/wealth/goals'),
   createSavingsGoal: (data: any) => api.post('/wealth/goals', data),
   getMarketData: (symbol: string) => api.get(`/wealth/market-data/${symbol}`),
-  getInvestmentAdvice: (data: any) => api.post('/wealth/investment-advice', data),
-  rebalancePortfolio: (data: any) => api.post('/wealth/portfolio-rebalance', data),
-  executeTrade: (data: any) => api.post('/wealth/trades', data),
-  getTopInvestments: () => api.get('/wealth/top-investments'),
+  
   getAlerts: () => api.get('/wealth/alerts'),
 };
 

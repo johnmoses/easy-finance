@@ -1,7 +1,6 @@
 from app.extensions import db
 from datetime import datetime
 from sqlalchemy import event
-from app.planning.models import Budget
 
 class Account(db.Model):
     __tablename__ = "accounts"
@@ -29,10 +28,31 @@ class Transaction(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class Budget(db.Model):
+    __tablename__ = "budgets"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), nullable=False, default='general')
+    limit = db.Column(db.Float, nullable=False)
+    spent = db.Column(db.Float, nullable=False, default=0.0)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    period_start = db.Column(db.Date, nullable=False, default=datetime.today)
+    period_end = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    @property
+    def remaining(self):
+        return self.limit - self.spent
+    
+    @property
+    def percentage_used(self):
+        return (self.spent / self.limit * 100) if self.limit > 0 else 0
+
 @event.listens_for(Transaction, 'after_insert')
 def after_transaction_insert(mapper, connection, target):
     if target.account_id:
-        account = Account.query.get(target.account_id)
+        account = db.session.get(Account, target.account_id)
         if account:
             if target.transaction_type == 'expense':
                 account.balance -= target.amount
@@ -40,15 +60,14 @@ def after_transaction_insert(mapper, connection, target):
                 account.balance += target.amount
 
     if target.budget_id and target.transaction_type == 'expense':
-        budget = Budget.query.get(target.budget_id)
+        budget = db.session.get(Budget, target.budget_id)
         if budget:
             budget.spent += target.amount
-    db.session.commit()
 
 @event.listens_for(Transaction, 'after_delete')
 def after_transaction_delete(mapper, connection, target):
     if target.account_id:
-        account = Account.query.get(target.account_id)
+        account = db.session.get(Account, target.account_id)
         if account:
             if target.transaction_type == 'expense':
                 account.balance += target.amount
@@ -56,7 +75,6 @@ def after_transaction_delete(mapper, connection, target):
                 account.balance -= target.amount
 
     if target.budget_id and target.transaction_type == 'expense':
-        budget = Budget.query.get(target.budget_id)
+        budget = db.session.get(Budget, target.budget_id)
         if budget:
             budget.spent -= target.amount
-    db.session.commit()
