@@ -41,7 +41,7 @@ const ChatsScreen = () => {
     }
     try {
       setIsCreating(true);
-      const newRoom = await chatAPI.createRoom(newChatTitle, newChatDescription);
+      const newRoom = await chatAPI.createRoom({ name: newChatTitle });
       setRooms(prevRooms => [...prevRooms, newRoom]);
       setModalVisible(false);
       setNewChatTitle('');

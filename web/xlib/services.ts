@@ -48,9 +48,11 @@ export const blockchainService = {
 
 // Chat Services
 export const chatService = {
+  getRooms: () => api.get('/chat/rooms'),
   getMessages: (roomId: number) => api.get(`/chat/rooms/${roomId}/messages`),
   sendMessage: (roomId: number, data: any) => api.post(`/chat/rooms/${roomId}/messages`, data),
-  chatWithAI: (data: any) => api.post('/llm/chat', data)
+  chatWithAI: (data: any) => api.post('/chat/ai-chat', data),
+  chatWithSupportAI: (data: any) => api.post('/chat/support-chat', data)
 };
 
 // Auth Services
@@ -59,4 +61,34 @@ export const authService = {
   register: (data: any) => api.post('/auth/register', data),
   getProfile: () => api.get('/auth/profile'),
   logout: () => api.post('/auth/logout')
+};
+
+// General Services
+export const generalService = {
+  getNotifications: () => api.get('/notifications'),
+  markNotificationRead: (id: number) => api.put(`/notifications/${id}/read`),
+  getSettings: () => api.get('/settings'),
+  updateSettings: (data: any) => api.post('/settings', data),
+};
+
+// Billing, Subscription, and Team Services
+export const billingService = {
+  // Subscription Management
+  getPlans: () => api.get('/billing/plans'),
+  getSubscription: () => api.get('/billing/subscription'),
+  subscribe: (planId: number) => api.post('/billing/subscribe', { plan_id: planId }),
+  cancelSubscription: () => api.post('/billing/subscription/cancel'),
+
+  // Team Management (requires backend implementation in billing routes)
+  // getTeam: () => api.get('/billing/team'),
+  // inviteMember: (email: string) => api.post('/billing/team/members', { email }),
+  // updateMemberRole: (memberId: number, role: string) => api.patch(`/billing/team/members/${memberId}`, { role }),
+  // removeMember: (memberId: number) => api.delete(`/billing/team/members/${memberId}`),
+};
+
+// Support Services
+export const supportService = {
+  getArticles: () => api.get('/support/articles'),
+  getArticle: (id: number) => api.get(`/support/articles/${id}`),
+  getFaqs: () => api.get('/support/faqs'),
 };

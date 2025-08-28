@@ -63,6 +63,35 @@ def mcp_enhanced_chat():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@mcp_bp.route('/llm/support-chat', methods=['POST'])
+@jwt_required()
+def mcp_support_chat():
+    """Chat with MCP-enhanced LLM for support"""
+    user_id = str(get_jwt_identity())
+    data = request.get_json()
+    
+    query = data.get('message', '')
+    task_type = 'support_chat'  # Specific task type for support
+    
+    if not query:
+        return jsonify({"error": "Message is required"}), 400
+    
+    try:
+        # Store user query in context
+        mcp_manager.store_context(
+            user_id,
+            ContextType.CONVERSATION_HISTORY,
+            {"user_query": query, "timestamp": "2024-01-15T10:30:00Z"}
+        )
+        
+        # Process with MCP-enhanced LLM
+        response = mcp_llm.process_with_context(user_id, query, task_type)
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @mcp_bp.route('/rag/query', methods=['POST'])
 @jwt_required()
 def mcp_enhanced_rag():

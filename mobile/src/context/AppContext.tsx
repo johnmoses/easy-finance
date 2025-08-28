@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { User, Transaction, Investment, Goal } from '../types';
+import { User, Transaction, Investment, SavingsGoal, Plan, Subscription } from '../types';
 
 interface AppState {
   user: User | null;
   isAuthenticated: boolean;
   transactions: Transaction[];
   investments: Investment[];
-  goals: Goal[];
+  goals: SavingsGoal[];
+  plans: Plan[];
+  subscription: Subscription | null;
   loading: boolean;
 }
 
@@ -16,8 +18,10 @@ type AppAction =
   | { type: 'SET_TRANSACTIONS'; payload: Transaction[] }
   | { type: 'ADD_TRANSACTION'; payload: Transaction }
   | { type: 'SET_INVESTMENTS'; payload: Investment[] }
-  | { type: 'SET_GOALS'; payload: Goal[] }
-  | { type: 'ADD_GOAL'; payload: Goal }
+  | { type: 'SET_GOALS'; payload: SavingsGoal[] }
+  | { type: 'ADD_GOAL'; payload: SavingsGoal }
+  | { type: 'SET_PLANS'; payload: Plan[] }
+  | { type: 'SET_SUBSCRIPTION'; payload: Subscription | null }
   | { type: 'SET_LOADING'; payload: boolean };
 
 const initialState: AppState = {
@@ -26,6 +30,8 @@ const initialState: AppState = {
   transactions: [],
   investments: [],
   goals: [],
+  plans: [],
+  subscription: null,
   loading: false,
 };
 
@@ -45,6 +51,10 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, goals: action.payload };
     case 'ADD_GOAL':
       return { ...state, goals: [...state.goals, action.payload] };
+    case 'SET_PLANS':
+      return { ...state, plans: action.payload };
+    case 'SET_SUBSCRIPTION':
+      return { ...state, subscription: action.payload };
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
     default:
@@ -95,6 +105,11 @@ export const useAuth = () => {
   return {
     user: state.user,
     isAuthenticated: state.isAuthenticated,
+    subscription: state.subscription,
+    loadingSubscription: state.loading,
+    refetchSubscription: () => {
+      // Placeholder function, will be implemented later
+    },
     login,
     logout,
   };
@@ -131,20 +146,23 @@ export const useWealth = () => {
   };
 };
 
-export const usePlanning = () => {
+
+
+export const useBilling = () => {
   const { state, dispatch } = useAppContext();
-  
-  const addGoal = (goal: Goal) => {
-    dispatch({ type: 'ADD_GOAL', payload: goal });
+
+  const setPlans = (plans: Plan[]) => {
+    dispatch({ type: 'SET_PLANS', payload: plans });
   };
-  
-  const setGoals = (goals: Goal[]) => {
-    dispatch({ type: 'SET_GOALS', payload: goals });
+
+  const setSubscription = (subscription: Subscription | null) => {
+    dispatch({ type: 'SET_SUBSCRIPTION', payload: subscription });
   };
-  
+
   return {
-    goals: state.goals,
-    addGoal,
-    setGoals,
+    plans: state.plans,
+    subscription: state.subscription,
+    setPlans,
+    setSubscription,
   };
 };

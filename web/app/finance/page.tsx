@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../../xlib/auth'; // Import useAuth hook
 import { financeService } from '../../xlib/services';
 import { Plus, CreditCard, TrendingUp, TrendingDown, Wallet, Receipt, ArrowUpRight, ArrowDownRight, Calculator, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
 interface Account {
   id: number;
@@ -31,6 +33,7 @@ interface Budget {
 }
 
 export default function Finance() {
+  const { features } = useAuth(); // Use the auth hook to get features
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -156,6 +159,10 @@ export default function Finance() {
     .filter(t => t.transaction_type === 'expense' && new Date(t.timestamp).getMonth() === new Date().getMonth())
     .reduce((sum, t) => sum + t.amount, 0);
 
+  // Feature gating logic
+  const canAddAccount = features ? accounts.length < features.max_accounts : false;
+  const canAddBudget = features ? budgets.length < features.max_budgets : false;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -269,13 +276,21 @@ export default function Finance() {
               </h2>
               <div className="space-x-3">
                 {activeTab === 'accounts' ? (
-                  <button
-                    onClick={() => setShowAccountForm(true)}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add Account</span>
-                  </button>
+                  <div>
+                    <button
+                      onClick={() => setShowAccountForm(true)}
+                      disabled={!canAddAccount}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Account</span>
+                    </button>
+                    {!canAddAccount && (
+                      <p className="text-sm text-red-600 mt-2">
+                        <Link href="/billing">Upgrade your plan</Link> to add more accounts.
+                      </p>
+                    )}
+                  </div>
                 ) : activeTab === 'transactions' ? (
                   <>
                     <button
@@ -294,13 +309,21 @@ export default function Finance() {
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => setShowBudgetForm(true)}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Add Budget</span>
-                  </button>
+                  <div>
+                    <button
+                      onClick={() => setShowBudgetForm(true)}
+                      disabled={!canAddBudget}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Add Budget</span>
+                    </button>
+                    {!canAddBudget && (
+                      <p className="text-sm text-red-600 mt-2">
+                        <Link href="/billing">Upgrade your plan</Link> to add more budgets.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

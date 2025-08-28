@@ -9,7 +9,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { financeAPI, wealthAPI, authAPI } from '../services/api';
+import { authAPI } from '../services/api';
 
 interface DashboardData {
   balance: number;
@@ -122,15 +122,17 @@ const HomeScreen = ({ navigation }: any) => {
             onPress={() => navigation.navigate('Wealth')}>
             <Text style={styles.actionButtonText}>View Investments</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => navigation.navigate('Planning')}>
-            <Text style={styles.actionButtonText}>Financial Goals</Text>
-          </TouchableOpacity>
+          
           <TouchableOpacity 
             style={styles.actionButton}
             onPress={() => navigation.navigate('Blockchain')}>
             <Text style={styles.actionButtonText}>Blockchain</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('Support')}>
+            <Text style={styles.actionButtonText}>Support</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -149,14 +151,7 @@ const HomeScreen = ({ navigation }: any) => {
               <Text style={styles.menuItemText}>📈 Wealth Management</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                navigation.navigate('Planning');
-              }}>
-              <Text style={styles.menuItemText}>🎯 Financial Planning</Text>
-            </TouchableOpacity>
+            
             
             <TouchableOpacity 
               style={styles.menuItem}
@@ -165,6 +160,15 @@ const HomeScreen = ({ navigation }: any) => {
                 navigation.navigate('Blockchain');
               }}>
               <Text style={styles.menuItemText}>⛓️ Blockchain</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate('Support');
+              }}>
+              <Text style={styles.menuItemText}>❓ Support</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 

@@ -10,6 +10,9 @@ from app.auth.models import User
 import logging
 from app.extensions import init_embed_model, search_vectors
 from app.agents.orchestrator import supervisor_agent
+from app.billing.decorators import feature_required
+from mcp.llm_integration import mcp_llm
+from mcp.context_manager import mcp_manager, ContextType
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +127,7 @@ def get_room_messages(room_id):
 
 @chat_bp.route("/rooms/<int:room_id>/post_message", methods=["POST"])
 @jwt_required()
+@feature_required('ai_chat')
 def post_message_and_get_bot_reply(room_id):
     if not request.is_json:
         return jsonify({"error": "Invalid JSON."}), 400
@@ -224,3 +228,57 @@ def post_message_and_get_bot_reply(room_id):
         "bot_reply": bot_reply_text,
         "conversation": conversation,
     })
+
+@chat_bp.route('/support-chat', methods=['POST'])
+@jwt_required()
+def support_chat():
+    """Chat with MCP-enhanced LLM for support"""
+    user_id = str(get_jwt_identity())
+    data = request.get_json()
+    
+    query = data.get('message', '')
+    task_type = 'support_chat'
+    
+    if not query:
+        return jsonify({"error": "Message is required"}), 400
+    
+    try:
+        mcp_manager.store_context(
+            user_id,
+            ContextType.CONVERSATION_HISTORY,
+            {"user_query": query, "timestamp": "2024-01-15T10:30:00Z"}
+        )
+        
+        response = mcp_llm.process_with_context(user_id, query, task_type)
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@chat_bp.route('/ai-chat', methods=['POST'])
+@jwt_required()
+def ai_chat():
+    """Chat with MCP-enhanced LLM for general financial advice"""
+    user_id = str(get_jwt_identity())
+    data = request.get_json()
+    
+    query = data.get('message', '')
+    task_type = 'financial_advice'
+    
+    if not query:
+        return jsonify({"error": "Message is required"}), 400
+    
+    try:
+        mcp_manager.store_context(
+            user_id,
+            ContextType.CONVERSATION_HISTORY,
+            {"user_query": query, "timestamp": "2024-01-15T10:30:00Z"}
+        )
+        
+        response = mcp_llm.process_with_context(user_id, query, task_type)
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

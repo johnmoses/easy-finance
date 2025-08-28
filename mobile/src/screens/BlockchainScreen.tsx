@@ -10,153 +10,71 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-
-interface Block {
-  index: number;
-  timestamp: string;
-  data: string;
-  hash: string;
-  previousHash: string;
-  nonce: number;
-}
-
-interface Wallet {
-  id: string;
-  name: string;
-  address: string;
-  currency: string;
-  balance: number;
-  network: string;
-}
-
-interface DeFiPosition {
-  id: string;
-  protocol: string;
-  type: string;
-  tokenPair: string;
-  amount: number;
-  apy: number;
-  rewards: number;
-}
-
-interface NFT {
-  id: string;
-  name: string;
-  collection: string;
-  tokenId: string;
-  purchasePrice: number;
-  currentPrice: number;
-  marketplace: string;
-}
-
-interface CryptoHolding {
-  id: string;
-  symbol: string;
-  name: string;
-  amount: number;
-  currentPrice: number;
-  totalValue: number;
-  change24h: number;
-}
+import { blockchainAPI } from '../services/api';
+import { CryptoWallet, DeFiPosition, NFTCollection, CryptoTransaction } from '../types';
 
 const BlockchainScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState<'wallets' | 'defi' | 'nft' | 'crypto'>('wallets');
-  const [blockchain, setBlockchain] = useState<Block[]>([]);
-  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [wallets, setWallets] = useState<CryptoWallet[]>([]);
   const [defiPositions, setDefiPositions] = useState<DeFiPosition[]>([]);
-  const [nfts, setNfts] = useState<NFT[]>([]);
-  const [cryptoHoldings, setCryptoHoldings] = useState<CryptoHolding[]>([]);
-  const [mining, setMining] = useState(false);
+  const [nfts, setNfts] = useState<NFTCollection[]>([]);
+  const [cryptoTransactions, setCryptoTransactions] = useState<CryptoTransaction[]>([]);
+  const [activeData, setActiveData] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newItem, setNewItem] = useState<any>({});
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeTab]);
+
+  useEffect(() => {
+    switch (activeTab) {
+      case 'wallets':
+        setActiveData(wallets);
+        break;
+      case 'defi':
+        setActiveData(defiPositions);
+        break;
+      case 'nft':
+        setActiveData(nfts);
+        break;
+      case 'crypto':
+        setActiveData(cryptoTransactions);
+        break;
+      default:
+        setActiveData([]);
+    }
+  }, [activeTab, wallets, defiPositions, nfts, cryptoTransactions]);
 
   const loadData = async () => {
-    // Mock data
-    setWallets([
-      {
-        id: '1',
-        name: 'Main Wallet',
-        address: '0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4',
-        currency: 'ETH',
-        balance: 2.5,
-        network: 'Ethereum',
-      },
-      {
-        id: '2',
-        name: 'Trading Wallet',
-        address: '0x532925a3b8D4C0532925a3b8D4C0742d35Cc6634',
-        currency: 'BTC',
-        balance: 0.15,
-        network: 'Bitcoin',
-      },
-    ]);
-
-    setDefiPositions([
-      {
-        id: '1',
-        protocol: 'Uniswap V3',
-        type: 'Liquidity Pool',
-        tokenPair: 'ETH/USDC',
-        amount: 1000,
-        apy: 12.5,
-        rewards: 25.3,
-      },
-      {
-        id: '2',
-        protocol: 'Aave',
-        type: 'Lending',
-        tokenPair: 'USDC',
-        amount: 5000,
-        apy: 8.2,
-        rewards: 102.5,
-      },
-    ]);
-
-    setNfts([
-      {
-        id: '1',
-        name: 'Bored Ape #1234',
-        collection: 'Bored Ape Yacht Club',
-        tokenId: '1234',
-        purchasePrice: 15.5,
-        currentPrice: 18.2,
-        marketplace: 'OpenSea',
-      },
-      {
-        id: '2',
-        name: 'CryptoPunk #5678',
-        collection: 'CryptoPunks',
-        tokenId: '5678',
-        purchasePrice: 25.0,
-        currentPrice: 22.8,
-        marketplace: 'LooksRare',
-      },
-    ]);
-
-    setCryptoHoldings([
-      {
-        id: '1',
-        symbol: 'BTC',
-        name: 'Bitcoin',
-        amount: 0.15,
-        currentPrice: 45000,
-        totalValue: 6750,
-        change24h: 2.5,
-      },
-      {
-        id: '2',
-        symbol: 'ETH',
-        name: 'Ethereum',
-        amount: 2.5,
-        currentPrice: 3200,
-        totalValue: 8000,
-        change24h: -1.2,
-      },
-    ]);
+    try {
+      switch (activeTab) {
+        case 'wallets':
+          const walletsData = await blockchainAPI.getWallets();
+          setWallets(walletsData);
+          break;
+        case 'defi':
+          const defiData = await blockchainAPI.getDeFiPositions();
+          if (defiData.length === 0) {
+            Alert.alert('No Data', 'No DeFi positions found.');
+          }
+          setDefiPositions(defiData);
+          break;
+        case 'nft':
+          const nftData = await blockchainAPI.getNFTs();
+          setNfts(nftData);
+          break;
+        case 'crypto':
+          const cryptoData = await blockchainAPI.getCryptoTransactions();
+          if (cryptoData.length === 0) {
+            Alert.alert('No Data', 'No crypto transactions found.');
+          }
+          setCryptoTransactions(cryptoData);
+          break;
+      }
+    } catch (error) {
+      Alert.alert('Error', `Failed to load ${activeTab}`);
+    }
   };
 
   const openAddModal = () => {
@@ -166,39 +84,21 @@ const BlockchainScreen = ({ navigation }: any) => {
 
   const saveItem = async () => {
     try {
-      const id = Date.now().toString();
-      
       switch (activeTab) {
         case 'wallets':
-          if (!newItem.name || !newItem.address) {
-            Alert.alert('Error', 'Please fill in all fields');
-            return;
-          }
-          setWallets([{ ...newItem, id, balance: 0 }, ...wallets]);
+          await blockchainAPI.createWallet(newItem);
           break;
         case 'defi':
-          if (!newItem.protocol || !newItem.amount) {
-            Alert.alert('Error', 'Please fill in all fields');
-            return;
-          }
-          setDefiPositions([{ ...newItem, id, rewards: 0 }, ...defiPositions]);
+          await blockchainAPI.createDeFiPosition(newItem);
           break;
         case 'nft':
-          if (!newItem.name || !newItem.collection) {
-            Alert.alert('Error', 'Please fill in all fields');
-            return;
-          }
-          setNfts([{ ...newItem, id }, ...nfts]);
+          await blockchainAPI.addNFT(newItem);
           break;
         case 'crypto':
-          if (!newItem.symbol || !newItem.amount) {
-            Alert.alert('Error', 'Please fill in all fields');
-            return;
-          }
-          setCryptoHoldings([{ ...newItem, id, totalValue: newItem.amount * (newItem.currentPrice || 0) }, ...cryptoHoldings]);
+          await blockchainAPI.createCryptoTransaction(newItem);
           break;
       }
-      
+      loadData();
       setModalVisible(false);
       setNewItem({});
     } catch (error) {
@@ -206,7 +106,22 @@ const BlockchainScreen = ({ navigation }: any) => {
     }
   };
 
-  const renderWallet = ({ item }: { item: Wallet }) => (
+  const renderItem = ({ item }: { item: any }) => {
+    switch (activeTab) {
+      case 'wallets':
+        return renderWallet({ item });
+      case 'defi':
+        return renderDeFi({ item });
+      case 'nft':
+        return renderNFT({ item });
+      case 'crypto':
+        return renderCrypto({ item });
+      default:
+        return null;
+    }
+  };
+
+  const renderWallet = ({ item }: { item: CryptoWallet }) => (
     <View style={styles.itemCard}>
       <View style={styles.itemHeader}>
         <Text style={styles.itemTitle}>{item.name}</Text>
@@ -222,82 +137,70 @@ const BlockchainScreen = ({ navigation }: any) => {
     </View>
   );
 
-  const renderDeFi = ({ item }: { item: DeFiPosition }) => (
-    <View style={styles.itemCard}>
-      <View style={styles.itemHeader}>
-        <Text style={styles.itemTitle}>{item.protocol}</Text>
-        <Text style={styles.itemType}>{item.type}</Text>
-      </View>
-      <Text style={styles.itemPair}>{item.tokenPair}</Text>
-      <View style={styles.itemStats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Amount</Text>
-          <Text style={styles.statValue}>${item.amount.toLocaleString()}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>APY</Text>
-          <Text style={styles.statValue}>{item.apy}%</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Rewards</Text>
-          <Text style={styles.statValue}>${item.rewards.toFixed(2)}</Text>
-        </View>
-      </View>
-    </View>
-  );
-
-  const renderNFT = ({ item }: { item: NFT }) => {
-    const profitLoss = item.currentPrice - item.purchasePrice;
-    const profitLossPercent = ((profitLoss / item.purchasePrice) * 100);
-
+  const renderDeFi = ({ item }: { item: DeFiPosition }) => {
+    if (!item.amount_deposited) {
+      return <View />;
+    }
     return (
       <View style={styles.itemCard}>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemTitle}>{item.name}</Text>
-          <Text style={styles.itemMarketplace}>{item.marketplace}</Text>
+          <Text style={styles.itemTitle}>{item.protocol}</Text>
+          <Text style={styles.itemType}>{item.position_type}</Text>
         </View>
-        <Text style={styles.itemCollection}>{item.collection}</Text>
+        <Text style={styles.itemPair}>{item.token_pair}</Text>
         <View style={styles.itemStats}>
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Purchase</Text>
-            <Text style={styles.statValue}>{item.purchasePrice} ETH</Text>
+            <Text style={styles.statLabel}>Amount</Text>
+            <Text style={styles.statValue}>${item.amount_deposited.toLocaleString()}</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Current</Text>
-            <Text style={styles.statValue}>{item.currentPrice} ETH</Text>
+            <Text style={styles.statLabel}>APY</Text>
+            <Text style={styles.statValue}>{item.apy}%</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>P&L</Text>
-            <Text style={[styles.statValue, { color: profitLoss >= 0 ? '#4CAF50' : '#F44336' }]}>
-              {profitLoss >= 0 ? '+' : ''}{profitLoss.toFixed(2)} ETH ({profitLossPercent.toFixed(1)}%)
-            </Text>
+            <Text style={styles.statLabel}>Rewards</Text>
+            <Text style={styles.statValue}>${item.rewards_earned.toFixed(2)}</Text>
           </View>
         </View>
       </View>
     );
   };
 
-  const renderCrypto = ({ item }: { item: CryptoHolding }) => (
+  const renderNFT = ({ item }: { item: NFTCollection }) => (
     <View style={styles.itemCard}>
       <View style={styles.itemHeader}>
-        <Text style={styles.itemTitle}>{item.symbol}</Text>
-        <Text style={[styles.itemChange, { color: item.change24h >= 0 ? '#4CAF50' : '#F44336' }]}>
-          {item.change24h >= 0 ? '+' : ''}{item.change24h.toFixed(2)}%
-        </Text>
+        <Text style={styles.itemTitle}>{item.name}</Text>
+        <Text style={styles.itemMarketplace}>{item.marketplace}</Text>
       </View>
-      <Text style={styles.itemName}>{item.name}</Text>
+      <Text style={styles.itemCollection}>{item.contract_address}</Text>
+      <View style={styles.itemStats}>
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>Purchase</Text>
+          <Text style={styles.statValue}>{item.purchase_price} {item.currency}</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statLabel}>Current</Text>
+          <Text style={styles.statValue}>{item.current_price} {item.currency}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderCrypto = ({ item }: { item: CryptoTransaction }) => (
+    <View style={styles.itemCard}>
+      <View style={styles.itemHeader}>
+        <Text style={styles.itemTitle}>{item.tx_hash}</Text>
+        <Text style={styles.itemChange}>{item.status}</Text>
+      </View>
+      <Text style={styles.itemName}>{item.from_address} {"->"} {item.to_address}</Text>
       <View style={styles.itemStats}>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>Amount</Text>
-          <Text style={styles.statValue}>{item.amount}</Text>
+          <Text style={styles.statValue}>{item.amount} {item.currency}</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Price</Text>
-          <Text style={styles.statValue}>${item.currentPrice.toLocaleString()}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Value</Text>
-          <Text style={styles.statValue}>${item.totalValue.toLocaleString()}</Text>
+          <Text style={styles.statLabel}>Gas Fee</Text>
+          <Text style={styles.statValue}>{item.gas_fee}</Text>
         </View>
       </View>
     </View>
@@ -346,20 +249,20 @@ const BlockchainScreen = ({ navigation }: any) => {
             <TextInput
               style={styles.input}
               placeholder="Position Type"
-              value={newItem.type || ''}
-              onChangeText={type => setNewItem({ ...newItem, type })}
+              value={newItem.position_type || ''}
+              onChangeText={type => setNewItem({ ...newItem, position_type: type })}
             />
             <TextInput
               style={styles.input}
               placeholder="Token Pair"
-              value={newItem.tokenPair || ''}
-              onChangeText={tokenPair => setNewItem({ ...newItem, tokenPair })}
+              value={newItem.token_pair || ''}
+              onChangeText={tokenPair => setNewItem({ ...newItem, token_pair: tokenPair })}
             />
             <TextInput
               style={styles.input}
-              placeholder="Amount"
-              value={newItem.amount || ''}
-              onChangeText={amount => setNewItem({ ...newItem, amount: parseFloat(amount) || 0 })}
+              placeholder="Amount Deposited"
+              value={newItem.amount_deposited || ''}
+              onChangeText={amount => setNewItem({ ...newItem, amount_deposited: parseFloat(amount) || 0 })}
               keyboardType="numeric"
             />
             <TextInput
@@ -382,29 +285,28 @@ const BlockchainScreen = ({ navigation }: any) => {
             />
             <TextInput
               style={styles.input}
-              placeholder="Collection"
-              value={newItem.collection || ''}
-              onChangeText={collection => setNewItem({ ...newItem, collection })}
+              placeholder="Contract Address"
+              value={newItem.contract_address || ''}
+              onChangeText={collection => setNewItem({ ...newItem, contract_address: collection })}
             />
             <TextInput
               style={styles.input}
               placeholder="Token ID"
-              value={newItem.tokenId || ''}
-              onChangeText={tokenId => setNewItem({ ...newItem, tokenId })}
+              value={newItem.token_id || ''}
+              onChangeText={tokenId => setNewItem({ ...newItem, token_id: tokenId })}
             />
             <TextInput
               style={styles.input}
               placeholder="Purchase Price (ETH)"
-              value={newItem.purchasePrice || ''}
-              onChangeText={purchasePrice => setNewItem({ ...newItem, purchasePrice: parseFloat(purchasePrice) || 0 })}
+              value={newItem.purchase_price || ''}
+              onChangeText={purchasePrice => setNewItem({ ...newItem, purchase_price: parseFloat(purchasePrice) || 0 })}
               keyboardType="numeric"
             />
             <TextInput
               style={styles.input}
-              placeholder="Current Price (ETH)"
-              value={newItem.currentPrice || ''}
-              onChangeText={currentPrice => setNewItem({ ...newItem, currentPrice: parseFloat(currentPrice) || 0 })}
-              keyboardType="numeric"
+              placeholder="Currency"
+              value={newItem.currency || ''}
+              onChangeText={currency => setNewItem({ ...newItem, currency })}
             />
             <TextInput
               style={styles.input}
@@ -419,15 +321,15 @@ const BlockchainScreen = ({ navigation }: any) => {
           <>
             <TextInput
               style={styles.input}
-              placeholder="Symbol (e.g., BTC, ETH)"
-              value={newItem.symbol || ''}
-              onChangeText={symbol => setNewItem({ ...newItem, symbol })}
+              placeholder="From Address"
+              value={newItem.from_address || ''}
+              onChangeText={fromAddress => setNewItem({ ...newItem, from_address: fromAddress })}
             />
             <TextInput
               style={styles.input}
-              placeholder="Name"
-              value={newItem.name || ''}
-              onChangeText={name => setNewItem({ ...newItem, name })}
+              placeholder="To Address"
+              value={newItem.to_address || ''}
+              onChangeText={toAddress => setNewItem({ ...newItem, to_address: toAddress })}
             />
             <TextInput
               style={styles.input}
@@ -438,33 +340,12 @@ const BlockchainScreen = ({ navigation }: any) => {
             />
             <TextInput
               style={styles.input}
-              placeholder="Current Price ($)"
-              value={newItem.currentPrice || ''}
-              onChangeText={currentPrice => setNewItem({ ...newItem, currentPrice: parseFloat(currentPrice) || 0 })}
-              keyboardType="numeric"
+              placeholder="Currency"
+              value={newItem.currency || ''}
+              onChangeText={currency => setNewItem({ ...newItem, currency })}
             />
           </>
         );
-    }
-  };
-
-  const getCurrentData = () => {
-    switch (activeTab) {
-      case 'wallets': return wallets;
-      case 'defi': return defiPositions;
-      case 'nft': return nfts;
-      case 'crypto': return cryptoHoldings;
-      default: return [];
-    }
-  };
-
-  const getCurrentRenderer = () => {
-    switch (activeTab) {
-      case 'wallets': return renderWallet;
-      case 'defi': return renderDeFi;
-      case 'nft': return renderNFT;
-      case 'crypto': return renderCrypto;
-      default: return renderWallet;
     }
   };
 
@@ -500,9 +381,9 @@ const BlockchainScreen = ({ navigation }: any) => {
       </View>
 
       <FlatList
-        data={getCurrentData()}
-        renderItem={getCurrentRenderer()}
-        keyExtractor={item => item.id}
+        data={activeData}
+        renderItem={renderItem}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />

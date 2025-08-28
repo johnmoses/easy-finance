@@ -10,7 +10,6 @@ export type MainTabParamList = {
   Home: undefined;
   Finance: undefined;
   Wealth: undefined;
-  Planning: undefined;
   Blockchain: undefined;
   Chat: undefined;
 };

@@ -22,6 +22,7 @@ export default function Navbar() {
               <Link href="/wealth" className="hover:text-blue-200">Wealth</Link>
               <Link href="/blockchain" className="hover:text-blue-200">Blockchain</Link>
               <Link href="/chat" className="hover:text-blue-200">Chat</Link>
+              <Link href="/support" className="hover:text-blue-200">Support</Link>
               
               <div className="flex items-center space-x-2">
                 <User className="h-5 w-5" />

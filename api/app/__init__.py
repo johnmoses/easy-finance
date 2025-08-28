@@ -32,12 +32,17 @@ def create_app():
     from app.finance.routes import finance_bp
     from app.wealth.routes import wealth_bp
     from app.blockchain.routes import blockchain_bp
+    from app.billing.routes import billing_bp
+    from app.support.routes import support_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(chat_bp, url_prefix="/api/chat")
     app.register_blueprint(finance_bp, url_prefix="/api/finance")
     app.register_blueprint(wealth_bp, url_prefix="/api/wealth")
     app.register_blueprint(blockchain_bp, url_prefix="/api/blockchain")
+    app.register_blueprint(billing_bp, url_prefix="/api/billing")
+    app.register_blueprint(support_bp, url_prefix="/api/support")
+    
 
     # --- JWT Token Revocation (Blacklist) ---
     @jwt.token_in_blocklist_loader

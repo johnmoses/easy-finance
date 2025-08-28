@@ -13,11 +13,12 @@ import random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app, db
-from app.auth.models import User
+from app.auth.models import User, Team, TeamMember, Plan, Subscription
 from app.finance.models import Account, Transaction, Budget
 from app.wealth.models import Investment, SavingsGoal, Notification, PriceAlert
 from app.blockchain.models import CryptoWallet, DeFiPosition, NFTCollection
 from app.chat.models import ChatRoom, ChatMessage, ChatParticipant
+from app.support.models import SupportArticle, FAQ
 
 def create_users():
     """Create sample users"""
@@ -63,13 +64,100 @@ def create_users():
     print(f"✅ Created {len(users)} users")
     return users
 
+def create_teams_and_subscriptions(users):
+    """Creates plans, and for each user, creates a team, makes them an admin, and subscribes the team to the Free plan."""
+    plans_data = [
+        {
+            "name": "Free",
+            "price": 0.0,
+            "features": {
+                "max_accounts": 2,
+                "max_budgets": 3,
+                "ai_chat": False,
+                "advanced_reporting": False,
+                "max_goals": 2,
+                "max_wallets": 1,
+                "defi_tracking": False,
+                "nft_tracking": False,
+                "multi_user_teams": False
+            }
+        },
+        {
+            "name": "Pro",
+            "price": 15.0,
+            "features": {
+                "max_accounts": 10,
+                "max_budgets": 10,
+                "ai_chat": True,
+                "advanced_reporting": True,
+                "max_goals": 10,
+                "max_wallets": 5,
+                "defi_tracking": True,
+                "nft_tracking": True,
+                "multi_user_teams": True
+            }
+        },
+        {
+            "name": "Enterprise",
+            "price": -1,  # -1 indicates "Contact Us"
+            "features": {
+                "multi_user_teams": True,
+                "role_based_access": True,
+                "team_dashboards": True,
+                "audit_logs": True,
+                "sso_integration": True,
+                "max_accounts": 999,
+                "max_budgets": 999,
+                "ai_chat": True,
+                "advanced_reporting": True,
+                "max_goals": 999,
+                "max_wallets": 999,
+                "defi_tracking": True,
+                "nft_tracking": True
+            }
+        }
+    ]
+
+    plans = []
+    for plan_data in plans_data:
+        plan = Plan(**plan_data)
+        db.session.add(plan)
+        plans.append(plan)
+    db.session.flush()
+    print(f"✅ Created {len(plans)} subscription plans")
+
+    free_plan = next(p for p in plans if p.name == "Free")
+    teams = []
+    subscriptions = []
+
+    for user in users:
+        if user.role == 'admin':
+            continue
+
+        team = Team(name=f"{user.username}'s Team")
+        db.session.add(team)
+        db.session.flush()  # Get team ID
+        teams.append(team)
+
+        member = TeamMember(user_id=user.id, team_id=team.id, role='admin')
+        db.session.add(member)
+
+        subscription = Subscription(team_id=team.id, plan_id=free_plan.id, status='active')
+        db.session.add(subscription)
+        subscriptions.append(subscription)
+
+    print(f"✅ Created {len(teams)} default teams")
+    print(f"✅ Created {len(subscriptions)} default subscriptions for teams")
+    return plans, teams, subscriptions
+
 def create_accounts(users):
     """Create sample accounts for users"""
+    # NOTE: In a true multi-tenant app, accounts would also have a team_id.
+    # For this seeder, we'll keep them associated with the user who created them.
     account_types = ["checking", "savings", "credit"]
     accounts = []
     
     for user in users[:3]:  # Skip admin user
-        # Create 1 investment account for each user
         investment_account = Account(
             name=f"{user.username.title()}'s Investment",
             account_type="investment",
@@ -80,7 +168,6 @@ def create_accounts(users):
         db.session.add(investment_account)
         accounts.append(investment_account)
 
-        # Create 1-2 other accounts per user
         for i in range(random.randint(1, 2)):
             account_type = random.choice(account_types)
             balance = random.uniform(100, 10000) if account_type != "credit" else random.uniform(-2000, 0)
@@ -119,13 +206,11 @@ def create_transactions(users, accounts):
     for user in users[:3]:
         user_accounts = [acc for acc in accounts if acc.user_id == user.id]
         
-        # Create 20-50 transactions per user over the last 3 months
         for _ in range(random.randint(20, 50)):
             account = random.choice(user_accounts)
             category = random.choice(categories)
             description = random.choice(descriptions[category])
             
-            # Determine transaction type and amount
             if category in ["salary", "freelance"]:
                 transaction_type = "income"
                 amount = random.uniform(1000, 5000)
@@ -133,9 +218,7 @@ def create_transactions(users, accounts):
                 transaction_type = "expense"
                 amount = random.uniform(5, 500)
             
-            # Random date within last 3 months
-            days_ago = random.randint(1, 90)
-            transaction_date = datetime.now() - timedelta(days=days_ago)
+            transaction_date = datetime.now() - timedelta(days=random.randint(1, 90))
             
             transaction = Transaction(
                 amount=round(amount, 2),
@@ -166,7 +249,7 @@ def create_budgets(users):
     budgets = []
     
     for user in users[:3]:
-        for budget_data in random.sample(budget_categories, 3):  # 3 budgets per user
+        for budget_data in random.sample(budget_categories, 3):
             budget = Budget(
                 name=budget_data["name"],
                 category=budget_data["category"],
@@ -203,10 +286,9 @@ def create_investments(users, accounts):
             
         account = investment_accounts[0]
         
-        # Create 3-5 investments per user
         for stock in random.sample(stocks, random.randint(3, 5)):
             quantity = random.randint(1, 20)
-            purchase_price = stock["price"] * random.uniform(0.8, 1.2)  # Bought at different price
+            purchase_price = stock["price"] * random.uniform(0.8, 1.2)
             
             investment = Investment(
                 symbol=stock["symbol"],
@@ -222,7 +304,6 @@ def create_investments(users, accounts):
             db.session.add(investment)
             investments.append(investment)
     
-
     print(f"✅ Created {len(investments)} investments")
     return investments
 
@@ -240,7 +321,6 @@ def create_savings_goals(users):
     goals = []
     
     for user in users[:3]:
-        # Create 2-3 goals per user
         for goal_template in random.sample(goal_templates, random.randint(2, 3)):
             current_amount = random.uniform(0, goal_template["target"] * 0.6)
             target_date = date.today() + timedelta(days=random.randint(180, 730))
@@ -258,7 +338,6 @@ def create_savings_goals(users):
             db.session.add(goal)
             goals.append(goal)
     
-
     print(f"✅ Created {len(goals)} savings goals")
     return goals
 
@@ -275,7 +354,6 @@ def create_crypto_wallets(users):
     wallets = []
     
     for user in users[:3]:
-        # Create 2-3 wallets per user
         for crypto in random.sample(crypto_currencies, random.randint(2, 3)):
             wallet = CryptoWallet(
                 name=f"{crypto['currency']} Wallet",
@@ -289,7 +367,6 @@ def create_crypto_wallets(users):
             db.session.add(wallet)
             wallets.append(wallet)
     
-
     print(f"✅ Created {len(wallets)} crypto wallets")
     return wallets
 
@@ -310,7 +387,6 @@ def create_defi_positions(users, wallets):
         if not user_wallets:
             continue
             
-        # Create 1-2 DeFi positions per user
         for protocol in random.sample(protocols, random.randint(1, 2)):
             wallet = random.choice(user_wallets)
             amount_deposited = random.uniform(500, 5000)
@@ -322,14 +398,13 @@ def create_defi_positions(users, wallets):
                 amount_deposited=round(amount_deposited, 2),
                 current_value=round(amount_deposited * random.uniform(0.95, 1.15), 2),
                 apy=protocol["apy"],
-                rewards_earned=round(amount_deposited * protocol["apy"] / 100 * 0.25, 2),  # 3 months rewards
+                rewards_earned=round(amount_deposited * protocol["apy"] / 100 * 0.25, 2),
                 user_id=user.id,
                 wallet_id=wallet.id
             )
             db.session.add(position)
             positions.append(position)
     
-
     print(f"✅ Created {len(positions)} DeFi positions")
     return positions
 
@@ -344,14 +419,13 @@ def create_nfts(users, wallets):
     
     nfts = []
     
-    for user in users[:2]:  # Only first 2 users have NFTs
+    for user in users[:2]:
         user_wallets = [w for w in wallets if w.user_id == user.id and w.currency == "ETH"]
         if not user_wallets:
             continue
             
         wallet = user_wallets[0]
         
-        # Create 1-2 NFTs per user
         for nft_data in random.sample(nft_collections, random.randint(1, 2)):
             purchase_price = nft_data["price"] * random.uniform(0.7, 1.3)
             
@@ -369,7 +443,6 @@ def create_nfts(users, wallets):
             db.session.add(nft)
             nfts.append(nft)
     
-
     print(f"✅ Created {len(nfts)} NFTs")
     return nfts
 
@@ -386,7 +459,6 @@ def create_notifications(users):
     notifications = []
     
     for user in users[:3]:
-        # Create 3-5 notifications per user
         for notif_data in random.sample(notification_types, random.randint(3, 5)):
             notification = Notification(
                 title=notif_data["title"],
@@ -403,7 +475,6 @@ def create_notifications(users):
             db.session.add(notification)
             notifications.append(notification)
     
-
     print(f"✅ Created {len(notifications)} notifications")
     return notifications
 
@@ -414,7 +485,6 @@ def create_price_alerts(users):
     alerts = []
     
     for user in users[:3]:
-        # Create 2-3 price alerts per user
         for symbol in random.sample(alert_symbols, random.randint(2, 3)):
             target_price = random.uniform(100, 50000)
             
@@ -433,7 +503,6 @@ def create_price_alerts(users):
             db.session.add(alert)
             alerts.append(alert)
     
-
     print(f"✅ Created {len(alerts)} price alerts")
     return alerts
 
@@ -448,17 +517,13 @@ def create_chat_rooms(users):
     
     db.session.flush()
 
-    
-    # Add participants and messages
     messages = []
     for i, room in enumerate(rooms):
         user = users[i]
         
-        # Add user as participant
         participant = ChatParticipant(room_id=room.id, user_id=user.id)
         db.session.add(participant)
         
-        # Create sample conversation
         sample_messages = [
             {"content": "Hello! I need help with my budget planning.", "role": "user"},
             {"content": "I'd be happy to help you with budget planning! Let me analyze your spending patterns.", "role": "assistant"},
@@ -469,7 +534,7 @@ def create_chat_rooms(users):
         for j, msg_data in enumerate(sample_messages):
             message = ChatMessage(
                 room_id=room.id,
-                sender_id=user.id if msg_data["role"] == "user" else 1,  # Assume finance_assistant has ID 1
+                sender_id=user.id if msg_data["role"] == "user" else 1,
                 content=msg_data["content"],
                 role=msg_data["role"],
                 message_type="text",
@@ -478,27 +543,55 @@ def create_chat_rooms(users):
             db.session.add(message)
             messages.append(message)
     
-
     print(f"✅ Created {len(rooms)} chat rooms with {len(messages)} messages")
     return rooms, messages
 
-# def create_genesis_block():
-#     """Create the first block in the chain"""
-#     import json
-#     genesis_block = Block(
-#         index=0,
-#         data=json.dumps([{"message": "Genesis Block"}]),
-#         previous_hash="0",
-#         hash="",
-#         nonce=0,
-#         difficulty=4,
-#         mined_by="system",
-#         reward=0
-#     )
-#     genesis_block.hash = genesis_block.calculate_hash()
-#     db.session.add(genesis_block)
-# 
-#     print("✅ Created genesis block")
+def create_support_data():
+    """Create sample support articles and FAQs"""
+    articles_data = [
+        {
+            "title": "Getting Started with EasyFinance",
+            "content": "Welcome to EasyFinance! This guide will walk you through the initial setup of your account, including linking your bank accounts and creating your first budget.",
+            "category": "Getting Started",
+            "tags": "setup, introduction, budget"
+        },
+        {
+            "title": "How to Track Investments",
+            "content": "Our platform allows you to track various investments like stocks and cryptocurrencies. To add an investment, go to the 'Wealth' section and click on 'Add Investment'.",
+            "category": "Investments",
+            "tags": "stocks, crypto, tracking"
+        }
+    ]
+    
+    articles = []
+    for article_data in articles_data:
+        article = SupportArticle(**article_data)
+        db.session.add(article)
+        articles.append(article)
+    
+    print(f"✅ Created {len(articles)} support articles")
+
+    faqs_data = [
+        {
+            "question": "Is my financial data secure?",
+            "answer": "Yes, we use bank-level encryption to protect your data. We do not store your bank credentials on our servers.",
+            "category": "Security"
+        },
+        {
+            "question": "What is the fee for the Pro plan?",
+            "answer": "The Pro plan is $15 per month. It includes advanced features like AI chat support and multi-user teams.",
+            "category": "Billing"
+        }
+    ]
+
+    faqs = []
+    for faq_data in faqs_data:
+        faq = FAQ(**faq_data)
+        db.session.add(faq)
+        faqs.append(faq)
+
+    print(f"✅ Created {len(faqs)} FAQs")
+    return articles, faqs
 
 def main():
     """Main function to populate database with seed data"""
@@ -507,20 +600,20 @@ def main():
     with app.app_context():
         print("🌱 Starting EasyFinance seed data generation...")
         
-        # Drop and recreate all tables
         print("🗑️  Dropping existing tables...")
         db.drop_all()
         
         print("🏗️  Creating new tables...")
         db.create_all()
         
-        # Create seed data
-        # create_genesis_block()
         users = create_users()
-        db.session.commit() # Commit users to get their IDs
+        db.session.commit()
+        
+        plans, teams, subscriptions = create_teams_and_subscriptions(users)
+        db.session.commit()
         
         accounts = create_accounts(users)
-        db.session.commit() # Commit accounts to get their IDs
+        db.session.commit()
         
         transactions = create_transactions(users, accounts)
         db.session.commit()
@@ -551,10 +644,16 @@ def main():
         
         rooms, messages = create_chat_rooms(users)
         db.session.commit()
+
+        articles, faqs = create_support_data()
+        db.session.commit()
         
         print("\n🎉 Seed data generation completed successfully!")
         print("\n📊 Summary:")
         print(f"   👥 Users: {len(users)}")
+        print(f"   🏢 Teams: {len(teams)}")
+        print(f"   💼 Plans: {len(plans)}")
+        print(f"   💳 Subscriptions: {len(subscriptions)}")
         print(f"   🏦 Accounts: {len(accounts)}")
         print(f"   💳 Transactions: {len(transactions)}")
         print(f"   📋 Budgets: {len(budgets)}")
@@ -567,6 +666,8 @@ def main():
         print(f"   📊 Price Alerts: {len(alerts)}")
         print(f"   💬 Chat Rooms: {len(rooms)}")
         print(f"   📝 Messages: {len(messages)}")
+        print(f"   📖 Support Articles: {len(articles)}")
+        print(f"   ❓ FAQs: {len(faqs)}")
         
         print("\n🔑 Test User Credentials:")
         print("   Username: john_doe | Password: password123")

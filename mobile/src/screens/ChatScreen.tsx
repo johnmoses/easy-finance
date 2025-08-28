@@ -11,7 +11,6 @@ const ChatScreen = ({ route }: any) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isTyping, setIsTyping] = useState(false); // This state is not used in the provided code
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -30,16 +29,14 @@ const ChatScreen = ({ route }: any) => {
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
     setLoading(true);
-    setIsTyping(true);
     try {
-      const response = await chatAPI.sendMessage(room.id, newMessage, 'user');
+      const response = await chatAPI.sendMessage(room.id, { content: newMessage, role: 'user' });
       setMessages(response.conversation);
       setNewMessage('');
     } catch (error) {
       Alert.alert('Error', 'Failed to send message');
     } finally {
       setLoading(false);
-      setIsTyping(false);
     }
   };
 
@@ -71,7 +68,6 @@ const ChatScreen = ({ route }: any) => {
         contentContainerStyle={styles.messagesContent}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
-      {isTyping && <Text style={styles.typingIndicator}>Bot is typing...</Text>}
       <View style={styles.inputContainer}>
         <TextInput
           value={newMessage}
@@ -143,12 +139,6 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     borderRadius: 20,
-  },
-  typingIndicator: {
-    paddingHorizontal: 16,
-    paddingBottom: 5,
-    fontStyle: 'italic',
-    color: '#666',
   },
 });
 

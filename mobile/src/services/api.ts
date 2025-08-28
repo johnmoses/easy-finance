@@ -2,14 +2,12 @@ import axios from 'axios';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  LoginRequest,
   RegisterRequest,
   User,
   ChatRoom,
   ChatMessage,
   Account,
   Transaction,
-  Budget,
   Investment,
   SavingsGoal,
   Notification,
@@ -18,7 +16,10 @@ import {
   DeFiPosition,
   NFTCollection,
   CryptoTransaction,
-  Block,
+  Plan,
+  Subscription,
+  Article,
+  Faq,
 } from '../types';
 
 // Set the API base URL
@@ -208,7 +209,15 @@ export const financeAPI = {
   },
   createAccount: async (data: Partial<Account>) => {
     try {
-      const response = await api.post<Account>('/finance/accounts', data);
+      // Map frontend 'type' to backend 'account_type'
+      const payload = {
+        ...data,
+        account_type: data.type, // Map 'type' to 'account_type' for backend
+      };
+      // Remove 'type' from payload if it exists, to avoid sending both
+      delete payload.type; 
+
+      const response = await api.post<Account>('/finance/accounts', payload);
       return response.data;
     } catch (error) {
       logError(error, 'createAccount');
@@ -251,83 +260,22 @@ export const financeAPI = {
       throw error;
     }
   },
+  uploadTransactions: async (formData: FormData, accountId: string) => {
+    try {
+      const response = await api.post(`/finance/transactions/upload?account_id=${accountId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      logError(error, 'uploadTransactions');
+      throw error;
+    }
+  },
 };
 
-// --- Planning API ---
-export const planningAPI = {
-  getBudgets: async () => {
-    try {
-      const response = await api.get<Budget[]>('/planning/budgets');
-      return response.data;
-    } catch (error) {
-      logError(error, 'getBudgets');
-      throw error;
-    }
-  },
-  createBudget: async (data: Partial<Budget>) => {
-    try {
-      const response = await api.post<Budget>('/planning/budgets', data);
-      return response.data;
-    } catch (error) {
-      logError(error, 'createBudget');
-      throw error;
-    }
-  },
-  updateBudget: async (budgetId: number, data: Partial<Budget>) => {
-    try {
-      const response = await api.put<Budget>(`/planning/budgets/${budgetId}`, data);
-      return response.data;
-    } catch (error) {
-      logError(error, 'updateBudget');
-      throw error;
-    }
-  },
-  deleteBudget: async (budgetId: number) => {
-    try {
-      const response = await api.delete(`/planning/budgets/${budgetId}`);
-      return response.data;
-    } catch (error) {
-      logError(error, 'deleteBudget');
-      throw error;
-    }
-  },
-  getSpendingByCategory: async () => {
-    try {
-      const response = await api.get('/planning/analytics/spending-by-category');
-      return response.data;
-    } catch (error) {
-      logError(error, 'getSpendingByCategory');
-      throw error;
-    }
-  },
-  getMonthlyTrends: async () => {
-    try {
-      const response = await api.get('/planning/analytics/monthly-trends');
-      return response.data;
-    } catch (error) {
-      logError(error, 'getMonthlyTrends');
-      throw error;
-    }
-  },
-  getBudgetPerformance: async () => {
-    try {
-      const response = await api.get('/planning/analytics/budget-performance');
-      return response.data;
-    } catch (error) {
-      logError(error, 'getBudgetPerformance');
-      throw error;
-    }
-  },
-  getFinancialSummary: async () => {
-    try {
-      const response = await api.get('/planning/analytics/financial-summary');
-      return response.data;
-    } catch (error) {
-      logError(error, 'getFinancialSummary');
-      throw error;
-    }
-  },
-};
+
 
 // --- Wealth API ---
 export const wealthAPI = {
@@ -396,7 +344,7 @@ export const wealthAPI = {
   },
   getNotifications: async () => {
     try {
-      const response = await api.get<Notification[]>('/wealth/notifications');
+      const response = await api.get<Notification[]>('/wealth/alerts');
       return response.data;
     } catch (error) {
       logError(error, 'getNotifications');
@@ -405,7 +353,7 @@ export const wealthAPI = {
   },
   markNotificationRead: async (notificationId: number) => {
     try {
-      const response = await api.put(`/wealth/notifications/${notificationId}/read`);
+      const response = await api.put(`/wealth/alerts/${notificationId}/read`);
       return response.data;
     } catch (error) {
       logError(error, 'markNotificationRead');
@@ -433,6 +381,47 @@ export const wealthAPI = {
 };
 
 // --- Blockchain API ---
+// --- Billing API ---
+export const billingAPI = {
+  getPlans: async () => {
+    try {
+      const response = await api.get<Plan[]>('/billing/plans');
+      return response.data;
+    } catch (error) {
+      logError(error, 'getPlans');
+      throw error;
+    }
+  },
+  getSubscription: async () => {
+    try {
+      const response = await api.get<Subscription>('/billing/subscription');
+      return response.data;
+    } catch (error) {
+      logError(error, 'getSubscription');
+      throw error;
+    }
+  },
+  subscribe: async (plan_id: number) => {
+    try {
+      const response = await api.post('/billing/subscribe', { plan_id });
+      return response.data;
+    } catch (error) {
+      logError(error, 'subscribe');
+      throw error;
+    }
+  },
+  cancelSubscription: async () => {
+    try {
+      const response = await api.post('/billing/subscription/cancel');
+      return response.data;
+    } catch (error) {
+      logError(error, 'cancelSubscription');
+      throw error;
+    }
+  },
+};
+
+// --- Blockchain API ---
 export const blockchainAPI = {
   getWallets: async () => {
     try {
@@ -447,7 +436,7 @@ export const blockchainAPI = {
     try {
       const response = await api.post<CryptoWallet>('/blockchain/wallets', data);
       return response.data;
-    } catch (error) {
+    }  catch (error) {
       logError(error, 'createWallet');
       throw error;
     }
@@ -497,33 +486,7 @@ export const blockchainAPI = {
       throw error;
     }
   },
-  mineBlock: async (data: { transactions: any[] }) => {
-    try {
-      const response = await api.post('/blockchain/mine', data);
-      return response.data;
-    } catch (error) {
-      logError(error, 'mineBlock');
-      throw error;
-    }
-  },
-  getBlockchain: async () => {
-    try {
-      const response = await api.get<{ chain: Block[]; length: number }>('/blockchain/chain');
-      return response.data;
-    } catch (error) {
-      logError(error, 'getBlockchain');
-      throw error;
-    }
-  },
-  validateBlockchain: async () => {
-    try {
-      const response = await api.get('/blockchain/validate');
-      return response.data;
-    } catch (error) {
-      logError(error, 'validateBlockchain');
-      throw error;
-    }
-  },
+  
   getCryptoTransactions: async () => {
     try {
       const response = await api.get<CryptoTransaction[]>('/blockchain/transactions');
@@ -548,6 +511,37 @@ export const blockchainAPI = {
       return response.data;
     } catch (error) {
       logError(error, 'getBlockchainPortfolioSummary');
+      throw error;
+    }
+  },
+};
+
+// --- Support API ---
+export const supportAPI = {
+  getArticles: async () => {
+    try {
+      const response = await api.get<Article[]>('/support/articles');
+      return response.data;
+    } catch (error) {
+      logError(error, 'getArticles');
+      throw error;
+    }
+  },
+  getFaqs: async () => {
+    try {
+      const response = await api.get<Faq[]>('/support/faqs');
+      return response.data;
+    } catch (error) {
+      logError(error, 'getFaqs');
+      throw error;
+    }
+  },
+  chatWithSupportAI: async (message: string) => {
+    try {
+      const response = await api.post('/chat/support-chat', { message });
+      return response.data;
+    } catch (error) {
+      logError(error, 'chatWithSupportAI');
       throw error;
     }
   },

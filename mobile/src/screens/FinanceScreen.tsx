@@ -10,26 +10,31 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { financeAPI } from '../services/api';
-
-interface Transaction {
-  id: string;
-  type: 'income' | 'expense';
-  amount: number;
-  description: string;
-  date: string;
-  category: string;
-}
+import DocumentPicker, { errorCodes, isErrorWithCode } from '@react-native-documents/picker';
 
 interface Account {
-  id: string;
+  id: number; // Changed from string to number
   name: string;
-  type: 'checking' | 'savings' | 'credit';
+  type: 'checking' | 'savings' | 'credit' | 'investment'; // Added 'investment'
   balance: number;
-  bank: string;
+  bank: string; // Keep for now, as it's used in UI
+}
+
+interface Transaction {
+  id: number; // Changed from string to number
+  transaction_type: 'income' | 'expense'; // Changed from 'type' to 'transaction_type'
+  amount: number;
+  description: string;
+  date: string; // Keep as derived property for display
+  category: string;
+  account_id?: number; // Changed from string to number
 }
 
 const FinanceScreen = () => {
+  const [uploading, setUploading] = useState(false);
+  const [fileUploadModalVisible, setFileUploadModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'accounts' | 'transactions'>('accounts');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -41,10 +46,11 @@ const FinanceScreen = () => {
     amount: '',
     description: '',
     category: '',
+    account_id: '', // Added for backend compatibility
   });
   const [newAccount, setNewAccount] = useState({
     name: '',
-    type: 'checking' as 'checking' | 'savings' | 'credit',
+    type: 'checking' as 'checking' | 'savings' | 'credit' | 'investment',
     balance: '',
     bank: '',
   });
@@ -58,9 +64,9 @@ const FinanceScreen = () => {
     try {
       const data = await financeAPI.getAccounts();
       setAccounts(data.map((account: any) => ({
-        id: account.id.toString(),
+        id: account.id,
         name: account.name,
-        type: account.account_type,
+        type: account.account_type as Account['type'],
         balance: account.balance,
         bank: account.bank || 'Default Bank',
       })));
@@ -72,75 +78,77 @@ const FinanceScreen = () => {
 
   const loadTransactions = async () => {
     try {
-      // Mock data for now
-      const mockTransactions: Transaction[] = [
-        {
-          id: '1',
-          type: 'income',
-          amount: 3000,
-          description: 'Salary',
-          date: '2024-01-15',
-          category: 'Work',
-        },
-        {
-          id: '2',
-          type: 'expense',
-          amount: 150,
-          description: 'Groceries',
-          date: '2024-01-14',
-          category: 'Food',
-        },
-        {
-          id: '3',
-          type: 'expense',
-          amount: 80,
-          description: 'Gas',
-          date: '2024-01-13',
-          category: 'Transportation',
-        },
-      ];
-      setTransactions(mockTransactions);
+      const data = await financeAPI.getTransactions();
+      setTransactions(data.map((transaction: any) => ({
+        id: transaction.id,
+        transaction_type: transaction.transaction_type,
+        amount: transaction.amount,
+        description: transaction.description,
+        date: transaction.timestamp ? transaction.timestamp.split('T')[0] : new Date().toISOString().split('T')[0],
+        category: transaction.category,
+        account_id: transaction.account_id,
+      })));
     } catch (error) {
       console.error('Error loading transactions:', error);
+      Alert.alert('Error', 'Failed to load transactions');
     }
   };
 
   const saveTransaction = async () => {
-    if (!newTransaction.amount || !newTransaction.description) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!newTransaction.amount || !newTransaction.description || !newTransaction.account_id) {
+      Alert.alert('Error', 'Please fill in all fields and select an account');
       return;
     }
 
     try {
       if (editingTransaction) {
         // Update existing transaction
+        // Note: Backend updateTransaction is not yet implemented in financeAPI,
+        // so this part will still rely on local state for now or needs a new API call.
+        // For now, we'll simulate update locally.
         const updatedTransactions = transactions.map(t => 
           t.id === editingTransaction.id 
             ? {
                 ...t,
-                type: newTransaction.type,
+                transaction_type: newTransaction.type,
                 amount: parseFloat(newTransaction.amount),
                 description: newTransaction.description,
                 category: newTransaction.category || 'Other',
+                account_id: parseInt(newTransaction.account_id, 10),
               }
             : t
         );
         setTransactions(updatedTransactions);
+        Alert.alert('Success', 'Transaction updated locally. Backend update not implemented.');
       } else {
         // Add new transaction
-        const transaction: Transaction = {
-          id: Date.now().toString(),
-          type: newTransaction.type,
+        const createdTransaction = await financeAPI.createTransaction({
+          transaction_type: newTransaction.type, // Backend expects transaction_type
           amount: parseFloat(newTransaction.amount),
           description: newTransaction.description,
           category: newTransaction.category || 'Other',
-          date: new Date().toISOString().split('T')[0],
-        };
-        setTransactions([transaction, ...transactions]);
+          account_id: newTransaction.account_id ? parseInt(newTransaction.account_id, 10) : undefined,
+          timestamp: new Date().toISOString(),
+        });
+        setTransactions([
+          {
+            id: createdTransaction.id,
+            transaction_type: createdTransaction.transaction_type,
+            amount: createdTransaction.amount,
+            description: createdTransaction.description,
+            date: createdTransaction.timestamp.split('T')[0],
+            category: createdTransaction.category,
+            account_id: createdTransaction.account_id,
+          },
+          ...transactions,
+        ]);
+        Alert.alert('Success', 'Transaction added successfully!');
       }
       
       closeModal();
+      loadAccounts(); // Reload accounts to reflect balance changes
     } catch (error) {
+      console.error('Error saving transaction:', error);
       Alert.alert('Error', 'Failed to save transaction');
     }
   };
@@ -148,15 +156,16 @@ const FinanceScreen = () => {
   const editTransaction = (transaction: Transaction) => {
     setEditingTransaction(transaction);
     setNewTransaction({
-      type: transaction.type,
+      type: transaction.transaction_type,
       amount: transaction.amount.toString(),
       description: transaction.description,
       category: transaction.category,
+      account_id: transaction.account_id?.toString() || '',
     });
     setModalVisible(true);
   };
 
-  const deleteTransaction = (transactionId: string) => {
+  const deleteTransaction = (transactionId: number) => {
     Alert.alert(
       'Delete Transaction',
       'Are you sure you want to delete this transaction?',
@@ -165,8 +174,16 @@ const FinanceScreen = () => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            setTransactions(transactions.filter(t => t.id !== transactionId));
+          onPress: async () => {
+            try {
+              await financeAPI.deleteTransaction(transactionId);
+              setTransactions(transactions.filter(t => t.id !== transactionId));
+              loadAccounts(); // Reload accounts to reflect balance changes
+              Alert.alert('Success', 'Transaction deleted successfully!');
+            } catch (error) {
+              console.error('Error deleting transaction:', error);
+              Alert.alert('Error', 'Failed to delete transaction');
+            }
           },
         },
       ]
@@ -181,27 +198,37 @@ const FinanceScreen = () => {
       amount: '',
       description: '',
       category: '',
+      account_id: '',
     });
   };
 
   const saveAccount = async () => {
-    if (!newAccount.name || !newAccount.bank || !newAccount.balance) {
+    if (!newAccount.name || !newAccount.balance) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     try {
-      const account: Account = {
-        id: Date.now().toString(),
+      const createdAccount = await financeAPI.createAccount({
         name: newAccount.name,
         type: newAccount.type,
         balance: parseFloat(newAccount.balance),
-        bank: newAccount.bank,
-      };
-      
-      setAccounts([account, ...accounts]);
+      });
+
+      setAccounts([
+        {
+          id: createdAccount.id,
+          name: createdAccount.name,
+          type: newAccount.type,
+          balance: createdAccount.balance,
+          bank: newAccount.bank,
+        },
+        ...accounts,
+      ]);
       closeAccountModal();
+      Alert.alert('Success', 'Account added successfully!');
     } catch (error) {
+      console.error('Error creating account:', error);
       Alert.alert('Error', 'Failed to create account');
     }
   };
@@ -214,6 +241,62 @@ const FinanceScreen = () => {
       balance: '',
       bank: '',
     });
+  };
+
+  const handleFileUpload = async () => {
+    if (!newTransaction.account_id) {
+      Alert.alert('Error', 'Please select an account before uploading transactions.');
+      return;
+    }
+
+    setUploading(true); // Start loading
+
+    try {
+      const [res] = await DocumentPicker.pick({
+        type: ['*/*'], // Allow all file types for now
+      });
+
+      if (!res) {
+        console.log('User cancelled file picker or no file selected.');
+        return; // Exit if no file was selected
+      }
+
+      console.log(
+        res.uri,
+        res.type, // mime type
+        res.name,
+        res.size
+      );
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: res.uri,
+        type: res.type,
+        name: res.name,
+      } as any); // Cast to any to satisfy FormData.append type for RN file objects
+
+      await financeAPI.uploadTransactions(formData, newTransaction.account_id); 
+
+      Alert.alert('Success', 'Transactions uploaded successfully!');
+      loadTransactions(); // Reload transactions after successful upload
+      loadAccounts(); // Reload accounts to reflect balance changes
+
+    } catch (err: any) {
+      if (isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED) {
+        console.log('User cancelled file picker');
+      } else {
+        console.error('File upload error:', err);
+        let errorMessage = 'Failed to upload transactions.';
+        if (err.response && err.response.data && err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        Alert.alert('Error', errorMessage);
+      }
+    } finally {
+      setUploading(false); // End loading
+    }
   };
 
   const renderAccount = ({ item }: { item: Account }) => (
@@ -229,7 +312,7 @@ const FinanceScreen = () => {
             styles.accountBalance,
             { color: item.balance >= 0 ? '#4CAF50' : '#F44336' },
           ]}>
-          ${Math.abs(item.balance).toFixed(2)}
+          ${typeof item.balance === 'number' ? Math.abs(item.balance).toFixed(2) : 'N/A'}
         </Text>
         <View style={styles.accountActions}>
           <TouchableOpacity style={styles.editButton}>
@@ -254,9 +337,9 @@ const FinanceScreen = () => {
         <Text
           style={[
             styles.transactionAmount,
-            { color: item.type === 'income' ? '#4CAF50' : '#F44336' },
+            { color: item.transaction_type === 'income' ? '#4CAF50' : '#F44336' },
           ]}>
-          {item.type === 'income' ? '+' : '-'}${item.amount.toFixed(2)}
+          {item.transaction_type === 'income' ? '+' : '-'}${typeof item.amount === 'number' ? item.amount.toFixed(2) : 'N/A'}
         </Text>
         <View style={styles.transactionActions}>
           <TouchableOpacity 
@@ -308,18 +391,30 @@ const FinanceScreen = () => {
         </TouchableOpacity>
       </View>
 
+      {activeTab === 'transactions' && (
+        <TouchableOpacity 
+          style={styles.uploadButton}
+          onPress={() => setFileUploadModalVisible(true)} // Open file upload modal
+          disabled={uploading} // Disable button when uploading
+        >
+          <Text style={styles.uploadButtonText}>
+            {uploading ? 'Uploading...' : 'Upload Transactions'} {/* Change text based on loading state */}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {activeTab === 'accounts' ? (
         <FlatList
           data={accounts}
           renderItem={renderAccount}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.id.toString()}
           style={styles.list}
         />
       ) : (
         <FlatList
           data={transactions}
           renderItem={renderTransaction}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.id.toString()}
           style={styles.list}
         />
       )}
@@ -394,6 +489,19 @@ const FinanceScreen = () => {
               }
             />
 
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={newTransaction.account_id}
+                onValueChange={(itemValue: any) => setNewTransaction({ ...newTransaction, account_id: itemValue })}
+                style={styles.picker}
+              >
+                <Picker.Item label="-- Select an Account --" value="" />
+                {accounts.map(account => (
+                  <Picker.Item key={account.id} label={account.name} value={account.id.toString()} />
+                ))}
+              </Picker>
+            </View>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -430,14 +538,14 @@ const FinanceScreen = () => {
             />
 
             <View style={styles.typeSelector}>
-              {(['checking', 'savings', 'credit'] as const).map(type => (
+              {(['checking', 'savings', 'credit', 'investment'] as const).map(type => (
                 <TouchableOpacity
                   key={type}
                   style={[
                     styles.typeButton,
                     newAccount.type === type && styles.activeTypeButton,
                   ]}
-                  onPress={() => setNewAccount({ ...newAccount, type })}>
+                  onPress={() => setNewAccount({ ...newAccount, type })} >
                   <Text
                     style={[
                       styles.typeButtonText,
@@ -467,6 +575,42 @@ const FinanceScreen = () => {
                 <Text style={styles.saveButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* File Upload Modal */}
+      <Modal visible={fileUploadModalVisible} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Upload Transactions</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={newTransaction.account_id}
+                onValueChange={(itemValue: any) => setNewTransaction({ ...newTransaction, account_id: itemValue })}
+                style={styles.picker}
+              >
+                <Picker.Item label="-- Select an Account --" value="" />
+                {accounts.map(account => (
+                  <Picker.Item key={account.id} label={account.name} value={account.id.toString()} />
+                ))}
+              </Picker>
+            </View>
+            <TouchableOpacity 
+              style={styles.uploadButton}
+              onPress={handleFileUpload}
+              disabled={uploading || !newTransaction.account_id} // Disable if no account selected
+            >
+              <Text style={styles.uploadButtonText}>
+                {uploading ? 'Uploading...' : 'Select File and Upload'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.cancelButton, { marginTop: 10 }]} // Add some margin
+              onPress={() => setFileUploadModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -712,6 +856,33 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   saveButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  pickerLabel: {
+    fontSize: 16,
+    color: '#666',
+    paddingLeft: 10,
+    paddingTop: 5,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+  uploadButton: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    margin: 15,
+  },
+  uploadButtonText: {
     color: '#fff',
     fontWeight: 'bold',
   },

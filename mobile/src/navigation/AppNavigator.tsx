@@ -8,11 +8,11 @@ import HomeScreen from '../screens/HomeScreen';
 import AuthScreen from '../screens/AuthScreen';
 import FinanceScreen from '../screens/FinanceScreen';
 import WealthScreen from '../screens/WealthScreen';
-import PlanningScreen from '../screens/PlanningScreen';
 import BlockchainScreen from '../screens/BlockchainScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ChatsScreen from '../screens/ChatsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import BillingScreen from '../screens/BillingScreen'; // Ensure this is a default export
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -83,7 +83,7 @@ const AppNavigator = () => (
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="Wealth" component={WealthScreen} />
-      <Stack.Screen name="Planning" component={PlanningScreen} />
+      <Stack.Screen name="Billing" component={BillingScreen} />
     </Stack.Navigator>
   </NavigationContainer>
 );

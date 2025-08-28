@@ -107,6 +107,32 @@ export interface ChatRoom {
   created_at: string;
 }
 
+// Billing & Subscription Types
+export interface Features {
+  max_accounts: number;
+  max_budgets: number;
+  ai_chat: boolean;
+  advanced_reporting: boolean;
+  max_goals: number;
+  max_wallets: number;
+  defi_tracking: boolean;
+  nft_tracking: boolean;
+  multi_user_teams: boolean;
+}
+
+export interface Plan {
+  id: number;
+  name: string;
+  price: number;
+  features: Features;
+}
+
+export interface Subscription {
+  id: number;
+  plan: Plan;
+  status: string;
+}
+
 // API Response Types
 export interface ApiResponse<T> {
   data: T;
@@ -118,4 +144,24 @@ export interface ApiError {
   error: string;
   message?: string;
   status: number;
+}
+
+// Support Types
+export interface SupportArticle {
+  id: number;
+  title: string;
+  content: string;
+  category: string;
+  tags: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FAQ {
+  id: number;
+  question: string;
+  answer: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
 }

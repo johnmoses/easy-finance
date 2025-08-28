@@ -35,10 +35,10 @@ const AuthScreen = ({ navigation }: any) => {
     try {
       if (isLogin) {
         const response = await authAPI.login(username, password);
-        console.log('Login success:', response.data);
+        console.log('Login success:', response);
       } else {
-        const response = await authAPI.register(email, password, username, role);
-        console.log('Register success:', response.data);
+        const response = await authAPI.register({ email, password, username, role });
+        console.log('Register success:', response);
       }
       navigation.replace('Main');
     } catch (error: any) {

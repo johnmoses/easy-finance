@@ -79,29 +79,7 @@ export interface Transaction {
   budget_id?: number;
 }
 
-// --- Planning ---
-export interface Budget {
-  id: number;
-  name: string;
-  limit: number;
-  spent: number;
-  remaining: number;
-  percentage_used: number;
-  start_date: string;
-  end_date: string;
-  user_id: number;
-}
 
-export interface Goal {
-  id: number;
-  name: string;
-  target_amount: number;
-  current_amount: number;
-  progress_percentage: number;
-  target_date?: string;
-  is_completed: boolean;
-  user_id: number;
-}
 
 // --- Wealth ---
 export interface Investment {
@@ -219,6 +197,44 @@ export interface CryptoTransaction {
   created_at: string;
   user_id: number;
   wallet_id?: number;
+}
+
+// --- Billing ---
+export interface PlanFeatures {
+    max_accounts: number;
+    max_wallets: number;
+    ai_chat: boolean;
+    advanced_reporting: boolean;
+    multi_user_teams: boolean;
+}
+
+export interface Plan {
+  id: number;
+  name: string;
+  price: number;
+  features: PlanFeatures;
+}
+
+export interface Subscription {
+  id: number;
+  plan_id: number;
+  status: string;
+  start_date: string;
+  end_date: string | null;
+  plan: Plan;
+}
+
+// --- Support ---
+export interface Article {
+  id: number;
+  title: string;
+  content: string;
+}
+
+export interface Faq {
+  id: number;
+  question: string;
+  answer: string;
 }
 
 // --- Error ---
